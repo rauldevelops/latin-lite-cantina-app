@@ -36,7 +36,7 @@ Latin Lite is a weekly meal delivery service offering fresh, Latin-inspired meal
 
 ### Ordering Rules
 - **Order window:** Customers can order for the upcoming week until Tuesday of that delivery week
-- **Delivery days:** Wednesday through Friday
+- **Delivery days:** Monday through Friday
 - **Minimum order:** 3 days per week, at least 1 "completa" per day
 - **Completa definition:** 1 entrée + 3 sides (4 individually packaged containers)
 - **Maximum per day:** 4 completas + 4 extra entrées + 4 extra sides (current system limit)
@@ -211,7 +211,7 @@ Latin Lite is a weekly meal delivery service offering fresh, Latin-inspired meal
 ```
 1. Visit site → See current menu (or "menu coming soon")
 2. Click "Order Now" → Prompted to log in or continue as guest
-3. Select delivery days (checkboxes for Wed/Thu/Fri, min 3)
+3. Select delivery days (checkboxes for Mon/Tue/Wed/Thu/Fri, min 3)
 4. For each selected day:
    a. Add completa(s): choose 1 entrée + 3 sides
    b. Optionally add extra entrées or sides
@@ -250,7 +250,7 @@ Latin Lite is a weekly meal delivery service offering fresh, Latin-inspired meal
 Users
 ├── id, email, password_hash, role, created_at
 ├── Customers (role = 'customer')
-│   └── CustomerProfiles (phone, addresses, credit_account, notes)
+│   └── CustomerProfiles (phone, email, addresses, credit_account, notes)
 ├── Staff (role = 'admin' | 'kitchen' | 'driver')
 
 MenuItems
@@ -561,7 +561,7 @@ model WeeklyMenuItem {
   weeklyMenu   WeeklyMenu @relation(fields: [weeklyMenuId], references: [id])
   menuItemId   String
   menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
-  dayOfWeek    Int        // 3=Wed, 4=Thu, 5=Fri
+  dayOfWeek    Int        // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
   isSpecial    Boolean    @default(false)  // Daily special vs staple
   
   @@unique([weeklyMenuId, menuItemId, dayOfWeek])
@@ -614,7 +614,7 @@ model OrderDay {
   id          String   @id @default(cuid())
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  dayOfWeek   Int      // 3=Wed, 4=Thu, 5=Fri
+  dayOfWeek   Int      // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
   deliveryFee Decimal  @db.Decimal(10, 2) @default(0)
   
   orderItems  OrderItem[]
