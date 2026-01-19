@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  KITCHEN
+  DRIVER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CREDIT_ACCOUNT
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+  CHECK
+  CREDIT_ACCOUNT
+}
+
+enum MenuItemType {
+  ENTREE
+  SIDE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  role          UserRole  @default(CUSTOMER)
+  firstName     String
+  lastName      String
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Customer-specific
+  addresses     Address[]
+  orders        Order[]
+  isCreditAccount Boolean @default(false)
+  notes         String?
+  
+  // Staff-specific
+  createdOrders Order[]   @relation("CreatedBy")
+  
+  @@index([email])
+  @@index([role])
+}
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  street        String
+  unit          String?
+  city          String
+  state         String
+  zipCode       String
+  isDefault     Boolean  @default(false)
+  deliveryNotes String?  // Gate codes, special instructions
+  createdAt     DateTime @default(now())
+  
+  orders        Order[]
+  
+  @@index([userId])
+  @@index([zipCode])
+}
+
+model MenuItem {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  type        MenuItemType
+  price       Decimal      @db.Decimal(10, 2)
+  isStaple    Boolean      @default(false)  // Always available (masitas, picadillo)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  weeklyMenuItems WeeklyMenuItem[]
+  orderItems      OrderItem[]
+  
+  @@index([type])
+  @@index([isActive])
+}
+
+model WeeklyMenu {
+  id            String   @id @default(cuid())
+  weekStartDate DateTime // Monday of the week
+  isPublished   Boolean  @default(false)
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  menuItems     WeeklyMenuItem[]
+  orders        Order[]
+  
+  @@unique([weekStartDate])
+  @@index([weekStartDate])
+  @@index([isPublished])
+}
+
+model WeeklyMenuItem {
+  id           String   @id @default(cuid())
+  weeklyMenuId String
+  weeklyMenu   WeeklyMenu @relation(fields: [weeklyMenuId], references: [id])
+  menuItemId   String
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
+  dayOfWeek    Int        // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+  isSpecial    Boolean    @default(false)  // Daily special vs staple
+  
+  @@unique([weeklyMenuId, menuItemId, dayOfWeek])
+  @@index([weeklyMenuId])
+  @@index([dayOfWeek])
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique  // Human-readable: LL-2026-001234
+  customerId      String
+  customer        User          @relation(fields: [customerId], references: [id])
+  weeklyMenuId    String
+  weeklyMenu      WeeklyMenu    @relation(fields: [weeklyMenuId], references: [id])
+  
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod?
+  
+  // Delivery info
+  isPickup        Boolean       @default(false)
+  addressId       String?
+  address         Address?      @relation(fields: [addressId], references: [id])
+  
+  // Pricing
+  subtotal        Decimal       @db.Decimal(10, 2)
+  deliveryFee     Decimal       @db.Decimal(10, 2) @default(0)
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  
+  // Stripe
+  stripePaymentIntentId String?
+  
+  // Metadata
+  notes           String?
+  createdById     String?       // Staff who created (for phone orders)
+  createdBy       User?         @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  orderDays       OrderDay[]
+  payments        Payment[]
+  
+  @@index([customerId])
+  @@index([weeklyMenuId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderDay {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int      // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri
+  deliveryFee Decimal  @db.Decimal(10, 2) @default(0)
+  
+  orderItems  OrderItem[]
+  
+  @@unique([orderId, dayOfWeek])
+  @@index([orderId])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderDayId    String
+  orderDay      OrderDay @relation(fields: [orderDayId], references: [id], onDelete: Cascade)
+  menuItemId    String
+  menuItem      MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity      Int      @default(1)
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  
+  // Completa tracking
+  completaGroupId String?  // Groups items that form a completa together
+  isCompleta      Boolean  @default(false)  // Is this part of a completa?
+  
+  @@index([orderDayId])
+  @@index([completaGroupId])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id])
+  amount      Decimal       @db.Decimal(10, 2)
+  method      PaymentMethod
+  status      PaymentStatus
+  reference   String?       // Check number, Stripe ID, etc.
+  recordedById String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  
+  @@index([orderId])
+}
