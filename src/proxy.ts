@@ -9,10 +9,6 @@ export default auth((req) => {
       // Not logged in - redirect to login
       return NextResponse.redirect(new URL("/login", req.url));
     }
-    
-    // Check if user has admin role
-    // Note: You'll need to add role to the session token
-    // For now, we'll check in the page components
   }
   
   return NextResponse.next();
