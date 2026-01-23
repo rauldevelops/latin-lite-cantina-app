@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 // GET single menu item
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const session = await auth();
     
@@ -35,8 +36,9 @@ export async function GET(
 // PUT update menu item
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const session = await auth();
     
@@ -70,8 +72,10 @@ export async function PUT(
 // DELETE menu item
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
+
   try {
     const session = await auth();
     
