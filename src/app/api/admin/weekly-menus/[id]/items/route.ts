@@ -18,13 +18,14 @@ export async function POST(
 
     const { menuItemId, dayOfWeek, isSpecial } = await request.json();
 
-    // Validate dayOfWeek (1-5 for Mon-Fri)
-    if (dayOfWeek < 1 || dayOfWeek > 5) {
-      return NextResponse.json(
-        { error: "Day must be between 1 (Monday) and 5 (Friday)" },
+    // Validate dayOfWeek (0 = all week, 1-5 for Mon-Fri)
+    if (dayOfWeek < 0 || dayOfWeek > 5) {
+        return NextResponse.json(
+        { error: "Day must be between 0 (all week) and 5 (Friday)" },
         { status: 400 }
-      );
+        );
     }
+  
 
     const weeklyMenuItem = await prisma.weeklyMenuItem.create({
       data: {

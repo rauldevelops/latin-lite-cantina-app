@@ -68,7 +68,7 @@ export default function WeeklyMenuBuilderPage() {
         setWeeklyMenu(menuData);
         setAllMenuItems(itemsData);
       } catch (err) {
-        setError("Failed to load data");
+        setError(`Failed to load data: ${err}`);
       } finally {
         setLoading(false);
       }
@@ -77,8 +77,10 @@ export default function WeeklyMenuBuilderPage() {
     fetchData();
   }, [params.id, router]);
 
-  async function addItemToDay(menuItemId: string) {
+  async function addItemToDay(menuItemId: string, itemType: "ENTREE" | "SIDE") {
     if (!weeklyMenu) return;
+
+    const dayToUse = itemType === "SIDE" ? 0 : selectedDay;
 
     try {
       const res = await fetch(`/api/admin/weekly-menus/${weeklyMenu.id}/items`, {
@@ -86,7 +88,7 @@ export default function WeeklyMenuBuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           menuItemId,
-          dayOfWeek: selectedDay,
+          dayOfWeek: dayToUse,
           isSpecial: false,
         }),
       });
@@ -103,7 +105,7 @@ export default function WeeklyMenuBuilderPage() {
         menuItems: [...weeklyMenu.menuItems, newItem],
       });
     } catch (err) {
-      alert("Something went wrong");
+      alert(`Something went wrong: ${err}`);
     }
   }
 
@@ -124,14 +126,21 @@ export default function WeeklyMenuBuilderPage() {
         menuItems: weeklyMenu.menuItems.filter((item) => item.id !== weeklyMenuItemId),
       });
     } catch (err) {
-      alert("Failed to remove item");
+      alert(`Failed to remove item: ${err}`);
     }
   }
 
   function getItemsForDay(dayOfWeek: number) {
     if (!weeklyMenu) return [];
-    return weeklyMenu.menuItems.filter((item) => item.dayOfWeek === dayOfWeek);
-  }
+    return weeklyMenu.menuItems.filter(
+      (item) => item.dayOfWeek === dayOfWeek && item.menuItem.type === "ENTREE"
+    );
+  }  
+
+  function getSidesForWeek() {
+    if (!weeklyMenu) return [];
+    return weeklyMenu.menuItems.filter((item) => item.dayOfWeek === 0);
+  }  
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -236,6 +245,34 @@ export default function WeeklyMenuBuilderPage() {
             </div>
           </div>
 
+        {/* Sides - Available All Week */}
+        <div className="lg:col-span-3 mt-4">
+        <div className="bg-white shadow rounded-lg p-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Sides (Available All Week)</h3>
+            <div className="flex flex-wrap gap-2">
+            {getSidesForWeek().length === 0 ? (
+                <p className="text-sm text-gray-400">No sides added yet</p>
+            ) : (
+                getSidesForWeek().map((item) => (
+                <div
+                    key={item.id}
+                    className="flex items-center gap-2 text-sm bg-gray-50 px-3 py-2 rounded"
+                >
+                    <span className="text-gray-900">{item.menuItem.name}</span>
+                    <button
+                    onClick={() => removeItemFromDay(item.id)}
+                    className="text-red-500 hover:text-red-700"
+                    >
+                    ✕
+                    </button>
+                </div>
+                ))
+            )}
+            </div>
+        </div>
+        </div>
+
+
           {/* Available Items Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white shadow rounded-lg p-4 sticky top-8">
@@ -254,7 +291,7 @@ export default function WeeklyMenuBuilderPage() {
                       .map((item) => (
                         <button
                           key={item.id}
-                          onClick={() => addItemToDay(item.id)}
+                          onClick={() => addItemToDay(item.id, "ENTREE")}
                           className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-blue-50 rounded text-gray-900"
                         >
                           {item.name}
@@ -273,7 +310,7 @@ export default function WeeklyMenuBuilderPage() {
                       .map((item) => (
                         <button
                           key={item.id}
-                          onClick={() => addItemToDay(item.id)}
+                          onClick={() => addItemToDay(item.id, "SIDE")}
                           className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-blue-50 rounded text-gray-900"
                         >
                           {item.name}
