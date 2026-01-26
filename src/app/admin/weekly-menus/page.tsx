@@ -18,6 +18,8 @@ export default function WeeklyMenusPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [cloneFromId, setCloneFromId] = useState("");
+
 
   useEffect(() => {
     async function fetchWeeklyMenus() {
@@ -35,7 +37,7 @@ export default function WeeklyMenusPage() {
         const data = await res.json();
         setWeeklyMenus(data);
       } catch (err) {
-        setError("Failed to load weekly menus");
+        setError(`Failed to load weekly menus ${err}`);
       } finally {
         setLoading(false);
       }
@@ -73,7 +75,7 @@ export default function WeeklyMenusPage() {
       const res = await fetch("/api/admin/weekly-menus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekStartDate }),
+        body: JSON.stringify({ weekStartDate, cloneFromId: cloneFromId || undefined }),
       });
 
       const result = await res.json();
@@ -85,7 +87,7 @@ export default function WeeklyMenusPage() {
 
       router.push(`/admin/weekly-menus/${result.id}`);
     } catch (err) {
-      setError("Something went wrong");
+      setError(`Something went wrong ${err}`);
     } finally {
       setCreating(false);
     }
@@ -103,7 +105,7 @@ export default function WeeklyMenusPage() {
 
       setWeeklyMenus(weeklyMenus.filter((menu) => menu.id !== id));
     } catch (err) {
-      alert("Failed to delete weekly menu");
+      alert(`Failed to delete weekly menu ${err}`);
     }
   }
 
@@ -126,7 +128,7 @@ export default function WeeklyMenusPage() {
         )
       );
     } catch (err) {
-      alert("Failed to update weekly menu");
+      alert(`Failed to update weekly menu ${err}`);
     }
   }
 
@@ -147,20 +149,34 @@ export default function WeeklyMenusPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Weekly Menus</h1>
-          <div className="flex gap-4 items-center">
+      <div className="flex flex-col gap-4 mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Weekly Menus</h1>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
             <input
-                type="date"
-                id="weekStart"
-                defaultValue={getNextMonday()}
-                onChange={(e) => {
-                    e.target.value = adjustToMonday(e.target.value);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+              type="date"
+              id="weekStart"
+              defaultValue={getNextMonday()}
+              onChange={(e) => {
+                e.target.value = adjustToMonday(e.target.value);
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 w-full sm:w-auto"
             />
+
+            <select
+              id="cloneFrom"
+              value={cloneFromId}
+              onChange={(e) => setCloneFromId(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 w-full sm:w-auto"
+            >
+              <option value="">Start from scratch</option>
+              {weeklyMenus.map((menu) => (
+                <option key={menu.id} value={menu.id}>
+                  Clone from {formatDate(menu.weekStartDate)} ({menu.menuItems.length} items)
+                </option>
+              ))}
+            </select>
 
             <button
               onClick={() => {
@@ -168,12 +184,13 @@ export default function WeeklyMenusPage() {
                 createWeeklyMenu(input.value);
               }}
               disabled={creating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
             >
               {creating ? "Creating..." : "Create Week"}
             </button>
           </div>
         </div>
+
 
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>

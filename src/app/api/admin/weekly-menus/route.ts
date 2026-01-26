@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { weekStartDate } = await request.json();
+    const { weekStartDate, cloneFromId } = await request.json();
 
     // Parse date as local time (not UTC)
     const [year, month, day] = weekStartDate.split('-').map(Number);
@@ -72,6 +72,25 @@ export async function POST(request: Request) {
       },
     });
 
+      // If cloning from another menu, copy all its items
+      if (cloneFromId) {
+        const sourceMenu = await prisma.weeklyMenu.findUnique({
+          where: { id: cloneFromId },
+          include: { menuItems: true },
+        });
+  
+        if (sourceMenu && sourceMenu.menuItems.length > 0) {
+          await prisma.weeklyMenuItem.createMany({
+            data: sourceMenu.menuItems.map((item) => ({
+              weeklyMenuId: weeklyMenu.id,
+              menuItemId: item.menuItemId,
+              dayOfWeek: item.dayOfWeek,
+              isSpecial: item.isSpecial,
+            })),
+          });
+        }
+      }
+    
     return NextResponse.json(weeklyMenu, { status: 201 });
   } catch (error) {
     console.error("Error creating weekly menu:", error);
