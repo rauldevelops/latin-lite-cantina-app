@@ -14,15 +14,13 @@ function getCurrentMonday(): Date {
 export async function GET() {
   try {
     const monday = getCurrentMonday();
-    const nextDay = new Date(monday);
-    nextDay.setDate(nextDay.getDate() + 1);
 
-    const weeklyMenu = await prisma.weeklyMenu.findFirst({
+    // Get all published menus from current week onwards
+    const weeklyMenus = await prisma.weeklyMenu.findMany({
       where: {
         isPublished: true,
         weekStartDate: {
           gte: monday,
-          lt: nextDay,
         },
       },
       include: {
@@ -32,18 +30,21 @@ export async function GET() {
           },
         },
       },
+      orderBy: {
+        weekStartDate: "asc",
+      },
     });
 
-    if (!weeklyMenu) {
+    if (weeklyMenus.length === 0) {
       return NextResponse.json(
-        { error: "No menu available for this week" },
+        { error: "No menus available" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(weeklyMenu);
+    return NextResponse.json(weeklyMenus);
   } catch (error) {
-    console.error("Error fetching current menu:", error);
+    console.error("Error fetching upcoming menus:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
