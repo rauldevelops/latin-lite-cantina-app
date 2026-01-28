@@ -11,6 +11,7 @@ type MenuItem = {
   type: "ENTREE" | "SIDE";
   price: number;
   isActive: boolean;
+  isDessert: boolean;
 };
 
 export default function EditMenuItemPage() {
@@ -20,6 +21,7 @@ export default function EditMenuItemPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [itemType, setItemType] = useState("");
 
   useEffect(() => {
         async function fetchMenuItem() {
@@ -37,6 +39,7 @@ export default function EditMenuItemPage() {
 
         const data = await res.json();
         setMenuItem(data);
+        setItemType(data.type);
       } catch (err) {
         setError(`Failed to load menu item: ${err}`);
       } finally {
@@ -58,6 +61,7 @@ export default function EditMenuItemPage() {
       description: formData.get("description") || null,
       type: formData.get("type"),
       price: formData.get("price"),
+      isDessert: formData.get("isDessert") === "on",
     };
 
     try {
@@ -167,13 +171,32 @@ export default function EditMenuItemPage() {
               id="type"
               name="type"
               required
-              defaultValue={menuItem.type}
+              value={itemType}
+              onChange={(e) => setItemType(e.target.value)}
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
             >
               <option value="ENTREE">Entree</option>
               <option value="SIDE">Side</option>
             </select>
           </div>
+
+          {itemType === "SIDE" && (
+            <div className="flex items-center gap-2">
+              <input
+                id="isDessert"
+                name="isDessert"
+                type="checkbox"
+                defaultChecked={menuItem.isDessert}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              />
+              <label
+                htmlFor="isDessert"
+                className="text-sm font-medium text-gray-700"
+              >
+                Dessert? (limits to 1 per completa)
+              </label>
+            </div>
+          )}
 
           <div>
             <label

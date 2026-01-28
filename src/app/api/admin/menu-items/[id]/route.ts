@@ -47,7 +47,7 @@ export async function PUT(
     }
 
     const data = await request.json();
-    const { name, description, type, price } = data;
+    const { name, description, type, price, isDessert } = data;
 
     const menuItem = await prisma.menuItem.update({
       where: { id: params.id },
@@ -56,6 +56,7 @@ export async function PUT(
         description,
         type,
         price: parseFloat(price),
+        isDessert: isDessert || false,
       },
     });
 
