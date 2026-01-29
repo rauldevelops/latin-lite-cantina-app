@@ -9,6 +9,7 @@ type MenuItem = {
   description: string | null;
   type: "ENTREE" | "SIDE";
   price: number;
+  isDessert: boolean;
 };
 
 type WeeklyMenuItem = {
@@ -23,9 +24,26 @@ type WeeklyMenu = {
   menuItems: WeeklyMenuItem[];
 };
 
-type DaySelection = {
+// A single side selection with quantity
+type SideSelection = {
+  weeklyMenuItemId: string;
+  menuItemId: string;
+  name: string;
+  isDessert: boolean;
+  quantity: number;
+};
+
+// A single completa: 1 entree + 3 side slots
+type Completa = {
   entree: WeeklyMenuItem | null;
-  sides: WeeklyMenuItem[];
+  sides: SideSelection[];
+};
+
+// Per-day selections
+type DaySelection = {
+  completas: Completa[];
+  extraEntrees: { item: WeeklyMenuItem; quantity: number }[];
+  extraSides: SideSelection[];
 };
 
 type OrderSelections = {
@@ -40,7 +58,23 @@ const DAYS = [
   { num: 5, name: "Friday" },
 ];
 
-const COMPLETA_PRICE = 12.0; // 1 entree + 2 sides bundled price
+const SIDES_PER_COMPLETA = 3;
+
+function emptyCompleta(): Completa {
+  return { entree: null, sides: [] };
+}
+
+function emptyDaySelection(): DaySelection {
+  return { completas: [], extraEntrees: [], extraSides: [] };
+}
+
+function getTotalSideSlots(sides: SideSelection[]): number {
+  return sides.reduce((sum, s) => sum + s.quantity, 0);
+}
+
+function getDessertCount(sides: SideSelection[]): number {
+  return sides.filter((s) => s.isDessert).reduce((sum, s) => sum + s.quantity, 0);
+}
 
 export default function OrderPage() {
   const router = useRouter();
@@ -55,18 +89,15 @@ export default function OrderPage() {
     async function fetchMenus() {
       try {
         const res = await fetch("/api/menus/upcoming");
-
         if (res.status === 404) {
           setError("No menus available for ordering.");
           return;
         }
-
         if (!res.ok) throw new Error("Failed to fetch menus");
 
         const data = await res.json();
         setMenus(data);
 
-        // Auto-select first orderable week
         const now = new Date();
         const currentDay = now.getDay();
         if (currentDay >= 3 && data.length > 1) {
@@ -82,7 +113,6 @@ export default function OrderPage() {
         setLoading(false);
       }
     }
-
     fetchMenus();
   }, []);
 
@@ -99,28 +129,20 @@ export default function OrderPage() {
   function isCurrentWeek(menuDate: string): boolean {
     const menuMonday = new Date(menuDate);
     menuMonday.setHours(0, 0, 0, 0);
-    const currentMonday = getCurrentMonday();
-    return menuMonday.getTime() === currentMonday.getTime();
+    return menuMonday.getTime() === getCurrentMonday().getTime();
   }
 
   function isDayDisabled(dayOfWeek: number, menuDate: string): boolean {
     if (!isCurrentWeek(menuDate)) return false;
-
-    const now = new Date();
-    const currentDay = now.getDay();
-
+    const currentDay = new Date().getDay();
     if (currentDay >= 3) return true;
-    if (currentDay >= 1 && currentDay <= 2) {
-      return dayOfWeek <= currentDay;
-    }
-
+    if (currentDay >= 1 && currentDay <= 2) return dayOfWeek <= currentDay;
     return false;
   }
 
   function isEntireWeekDisabled(menuDate: string): boolean {
     if (!isCurrentWeek(menuDate)) return false;
-    const now = new Date();
-    return now.getDay() >= 3;
+    return new Date().getDay() >= 3;
   }
 
   function getEntreesForDay(dayOfWeek: number): WeeklyMenuItem[] {
@@ -137,71 +159,196 @@ export default function OrderPage() {
     return menu.menuItems.filter((item) => item.dayOfWeek === 0);
   }
 
-  function selectEntree(dayOfWeek: number, item: WeeklyMenuItem | null) {
-    setSelections((prev) => ({
-      ...prev,
-      [dayOfWeek]: {
-        entree: item,
-        sides: prev[dayOfWeek]?.sides || [],
-      },
-    }));
+  function getDaySelection(dayOfWeek: number): DaySelection {
+    return selections[dayOfWeek] || emptyDaySelection();
   }
 
-  function toggleSide(dayOfWeek: number, item: WeeklyMenuItem) {
+  function getDaySelectionFromPrev(prev: OrderSelections, dayOfWeek: number): DaySelection {
+    return prev[dayOfWeek] || emptyDaySelection();
+  }
+
+  // Completa management
+  function addCompleta(dayOfWeek: number) {
     setSelections((prev) => {
-      const current = prev[dayOfWeek] || { entree: null, sides: [] };
-      const isSelected = current.sides.some((s) => s.id === item.id);
-
-      let newSides: WeeklyMenuItem[];
-      if (isSelected) {
-        newSides = current.sides.filter((s) => s.id !== item.id);
-      } else {
-        if (current.sides.length >= 2) {
-          // Replace oldest side
-          newSides = [current.sides[1], item];
-        } else {
-          newSides = [...current.sides, item];
-        }
-      }
-
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
       return {
         ...prev,
         [dayOfWeek]: {
-          ...current,
-          sides: newSides,
+          ...day,
+          completas: [...day.completas, emptyCompleta()],
         },
       };
     });
   }
 
-  function isDayComplete(dayOfWeek: number): boolean {
-    const sel = selections[dayOfWeek];
-    return sel?.entree !== null && sel?.sides?.length === 2;
+  function removeCompleta(dayOfWeek: number, index: number) {
+    setSelections((prev) => {
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
+      return {
+        ...prev,
+        [dayOfWeek]: {
+          ...day,
+          completas: day.completas.filter((_, i) => i !== index),
+        },
+      };
+    });
   }
 
-  function getCompleteDays(): number[] {
+  function setCompletaEntree(dayOfWeek: number, completaIndex: number, item: WeeklyMenuItem | null) {
+    setSelections((prev) => {
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
+      const completas = [...day.completas];
+      completas[completaIndex] = { ...completas[completaIndex], entree: item };
+      return { ...prev, [dayOfWeek]: { ...day, completas } };
+    });
+  }
+
+  function updateCompletaSide(
+    dayOfWeek: number,
+    completaIndex: number,
+    weeklyMenuItem: WeeklyMenuItem,
+    delta: number
+  ) {
+    setSelections((prev) => {
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
+      const completas = [...day.completas];
+      const completa = { ...completas[completaIndex] };
+      const sides = [...completa.sides];
+
+      const existingIndex = sides.findIndex(
+        (s) => s.weeklyMenuItemId === weeklyMenuItem.id
+      );
+
+      if (existingIndex >= 0) {
+        const newQty = sides[existingIndex].quantity + delta;
+        if (newQty <= 0) {
+          sides.splice(existingIndex, 1);
+        } else {
+          sides[existingIndex] = { ...sides[existingIndex], quantity: newQty };
+        }
+      } else if (delta > 0) {
+        sides.push({
+          weeklyMenuItemId: weeklyMenuItem.id,
+          menuItemId: weeklyMenuItem.menuItem.id,
+          name: weeklyMenuItem.menuItem.name,
+          isDessert: weeklyMenuItem.menuItem.isDessert,
+          quantity: 1,
+        });
+      }
+
+      // Enforce limits
+      const totalSlots = getTotalSideSlots(sides);
+      const dessertCount = getDessertCount(sides);
+
+      if (totalSlots > SIDES_PER_COMPLETA) {
+        return prev; // Don't allow exceeding 3 sides
+      }
+      if (dessertCount > 1) {
+        return prev; // Don't allow more than 1 dessert
+      }
+
+      completa.sides = sides;
+      completas[completaIndex] = completa;
+      return { ...prev, [dayOfWeek]: { ...day, completas } };
+    });
+  }
+
+  // Remove an entire side selection from a completa
+  function removeCompletaSide(
+    dayOfWeek: number,
+    completaIndex: number,
+    weeklyMenuItemId: string
+  ) {
+    setSelections((prev) => {
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
+      const completas = [...day.completas];
+      const completa = { ...completas[completaIndex] };
+      completa.sides = completa.sides.filter(
+        (s) => s.weeklyMenuItemId !== weeklyMenuItemId
+      );
+      completas[completaIndex] = completa;
+      return { ...prev, [dayOfWeek]: { ...day, completas } };
+    });
+  }
+
+  // Extra entrees
+  function updateExtraEntree(dayOfWeek: number, item: WeeklyMenuItem, delta: number) {
+    setSelections((prev) => {
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
+      const extras = [...day.extraEntrees];
+      const existingIndex = extras.findIndex((e) => e.item.id === item.id);
+
+      if (existingIndex >= 0) {
+        const newQty = extras[existingIndex].quantity + delta;
+        if (newQty <= 0) {
+          extras.splice(existingIndex, 1);
+        } else {
+          extras[existingIndex] = { ...extras[existingIndex], quantity: newQty };
+        }
+      } else if (delta > 0) {
+        extras.push({ item, quantity: 1 });
+      }
+
+      return { ...prev, [dayOfWeek]: { ...day, extraEntrees: extras } };
+    });
+  }
+
+  // Extra sides
+  function updateExtraSide(dayOfWeek: number, weeklyMenuItem: WeeklyMenuItem, delta: number) {
+    setSelections((prev) => {
+      const day = getDaySelectionFromPrev(prev, dayOfWeek);
+      const extras = [...day.extraSides];
+      const existingIndex = extras.findIndex(
+        (s) => s.weeklyMenuItemId === weeklyMenuItem.id
+      );
+
+      if (existingIndex >= 0) {
+        const newQty = extras[existingIndex].quantity + delta;
+        if (newQty <= 0) {
+          extras.splice(existingIndex, 1);
+        } else {
+          extras[existingIndex] = { ...extras[existingIndex], quantity: newQty };
+        }
+      } else if (delta > 0) {
+        extras.push({
+          weeklyMenuItemId: weeklyMenuItem.id,
+          menuItemId: weeklyMenuItem.menuItem.id,
+          name: weeklyMenuItem.menuItem.name,
+          isDessert: weeklyMenuItem.menuItem.isDessert,
+          quantity: 1,
+        });
+      }
+
+      return { ...prev, [dayOfWeek]: { ...day, extraSides: extras } };
+    });
+  }
+
+  function dayHasSelections(dayOfWeek: number): boolean {
+    const day = getDaySelection(dayOfWeek);
+    return (
+      day.completas.length > 0 ||
+      day.extraEntrees.length > 0 ||
+      day.extraSides.length > 0
+    );
+  }
+
+  function isCompletaComplete(completa: Completa): boolean {
+    return completa.entree !== null && getTotalSideSlots(completa.sides) === SIDES_PER_COMPLETA;
+  }
+
+  function getOrderableDays(): number[] {
+    const menu = menus[selectedMenuIndex];
+    if (!menu) return [];
     return DAYS.filter((day) => {
-      const menu = menus[selectedMenuIndex];
-      if (!menu) return false;
       if (isDayDisabled(day.num, menu.weekStartDate)) return false;
-      return isDayComplete(day.num);
+      return dayHasSelections(day.num);
     }).map((day) => day.num);
-  }
-
-  function calculateTotal(): number {
-    const completeDays = getCompleteDays();
-    return completeDays.length * COMPLETA_PRICE;
-  }
-
-  function formatPrice(price: number): string {
-    return `$${price.toFixed(2)}`;
   }
 
   function formatWeekRange(dateString: string): string {
     const monday = new Date(dateString);
     const friday = new Date(monday);
     friday.setDate(friday.getDate() + 4);
-
     const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
     return `${monday.toLocaleDateString("en-US", options)} - ${friday.toLocaleDateString("en-US", options)}`;
   }
@@ -209,25 +356,32 @@ export default function OrderPage() {
   function getWeekLabel(dateString: string): string {
     const menuMonday = new Date(dateString);
     const currentMonday = getCurrentMonday();
-
-    if (menuMonday.getTime() === currentMonday.getTime()) {
-      return "This Week";
-    }
-
+    if (menuMonday.getTime() === currentMonday.getTime()) return "This Week";
     const nextMonday = new Date(currentMonday);
     nextMonday.setDate(nextMonday.getDate() + 7);
-    if (menuMonday.getTime() === nextMonday.getTime()) {
-      return "Next Week";
-    }
-
+    if (menuMonday.getTime() === nextMonday.getTime()) return "Next Week";
     return formatWeekRange(dateString);
   }
 
   async function handleSubmitOrder() {
-    const completeDays = getCompleteDays();
-    if (completeDays.length === 0) {
-      alert("Please complete at least one day (1 entree + 2 sides)");
+    const orderableDays = getOrderableDays();
+    if (orderableDays.length === 0) {
+      alert("Please add at least one item to your order");
       return;
+    }
+
+    // Validate all completas are complete
+    for (const dayNum of orderableDays) {
+      const day = getDaySelection(dayNum);
+      for (let i = 0; i < day.completas.length; i++) {
+        if (!isCompletaComplete(day.completas[i])) {
+          const dayName = DAYS.find((d) => d.num === dayNum)?.name;
+          alert(
+            `${dayName} Completa #${i + 1} is incomplete. Each completa needs 1 entree + ${SIDES_PER_COMPLETA} sides.`
+          );
+          return;
+        }
+      }
     }
 
     setSubmitting(true);
@@ -235,22 +389,32 @@ export default function OrderPage() {
 
     try {
       const menu = menus[selectedMenuIndex];
-      const orderDays = completeDays.map((dayOfWeek) => {
-        const sel = selections[dayOfWeek];
+      const orderDays = orderableDays.map((dayOfWeek) => {
+        const day = getDaySelection(dayOfWeek);
         return {
           dayOfWeek,
-          entreeId: sel.entree!.menuItem.id,
-          sideIds: sel.sides.map((s) => s.menuItem.id),
+          completas: day.completas.map((c) => ({
+            entreeId: c.entree!.menuItem.id,
+            sides: c.sides.map((s) => ({
+              menuItemId: s.menuItemId,
+              quantity: s.quantity,
+            })),
+          })),
+          extraEntrees: day.extraEntrees.map((e) => ({
+            menuItemId: e.item.menuItem.id,
+            quantity: e.quantity,
+          })),
+          extraSides: day.extraSides.map((s) => ({
+            menuItemId: s.menuItemId,
+            quantity: s.quantity,
+          })),
         };
       });
 
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weeklyMenuId: menu.id,
-          orderDays,
-        }),
+        body: JSON.stringify({ weeklyMenuId: menu.id, orderDays }),
       });
 
       if (!res.ok) {
@@ -287,7 +451,7 @@ export default function OrderPage() {
 
   const selectedMenu = menus[selectedMenuIndex];
   const weekDisabled = isEntireWeekDisabled(selectedMenu.weekStartDate);
-  const completeDays = getCompleteDays();
+  const orderableDays = getOrderableDays();
   const sides = getSides();
 
   return (
@@ -297,7 +461,7 @@ export default function OrderPage() {
           Build Your Order
         </h1>
         <p className="text-center text-gray-600 mb-6">
-          Select 1 entree + 2 sides for each day ({formatPrice(COMPLETA_PRICE)}/day)
+          Each completa = 1 entree + {SIDES_PER_COMPLETA} sides (max 1 dessert)
         </p>
 
         {/* Week Selector */}
@@ -347,15 +511,15 @@ export default function OrderPage() {
               {DAYS.map((day) => {
                 const dayDisabled = isDayDisabled(day.num, selectedMenu.weekStartDate);
                 const entrees = getEntreesForDay(day.num);
-                const sel = selections[day.num] || { entree: null, sides: [] };
-                const complete = isDayComplete(day.num);
+                const daySel = getDaySelection(day.num);
+                const hasItems = dayHasSelections(day.num);
 
                 return (
                   <div
                     key={day.num}
                     className={`bg-white rounded-lg shadow p-4 ${
                       dayDisabled ? "opacity-50" : ""
-                    } ${complete ? "ring-2 ring-green-500" : ""}`}
+                    }`}
                   >
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-gray-900">
@@ -364,69 +528,263 @@ export default function OrderPage() {
                           <span className="ml-2 text-sm text-red-500">(Closed)</span>
                         )}
                       </h3>
-                      {complete && (
-                        <span className="text-green-600 text-sm font-medium">
-                          ✓ Complete
-                        </span>
+                      {!dayDisabled && (
+                        <button
+                          onClick={() => addCompleta(day.num)}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                        >
+                          + Add Completa
+                        </button>
                       )}
                     </div>
 
-                    {!dayDisabled && (
+                    {!dayDisabled && hasItems && (
                       <>
-                        {/* Entree Selection */}
-                        <div className="mb-4">
-                          <p className="text-sm font-medium text-gray-700 mb-2">
-                            Select Entree (1):
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {entrees.map((item) => (
+                        {/* Completas */}
+                        {daySel.completas.map((completa, cIndex) => (
+                          <div
+                            key={cIndex}
+                            className={`border rounded-lg p-3 mb-3 ${
+                              isCompletaComplete(completa)
+                                ? "border-green-300 bg-green-50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-medium text-gray-800">
+                                Completa #{cIndex + 1}
+                                {isCompletaComplete(completa) && (
+                                  <span className="ml-2 text-green-600 text-sm">
+                                    ✓
+                                  </span>
+                                )}
+                              </span>
                               <button
-                                key={item.id}
-                                onClick={() =>
-                                  selectEntree(
-                                    day.num,
-                                    sel.entree?.id === item.id ? null : item
-                                  )
-                                }
-                                className={`px-3 py-2 rounded-md text-sm ${
-                                  sel.entree?.id === item.id
-                                    ? "bg-green-600 text-white"
-                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                }`}
+                                onClick={() => removeCompleta(day.num, cIndex)}
+                                className="text-red-500 text-sm hover:text-red-700"
                               >
-                                {item.menuItem.name}
+                                Remove
                               </button>
-                            ))}
-                          </div>
-                        </div>
+                            </div>
 
-                        {/* Sides Selection */}
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 mb-2">
-                            Select Sides (2): {sel.sides.length}/2
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {sides.map((item) => {
-                              const isSelected = sel.sides.some(
-                                (s) => s.id === item.id
+                            {/* Selection Summary */}
+                            {(completa.entree || completa.sides.length > 0) && (
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {completa.entree && (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-green-600 text-white">
+                                    {completa.entree.menuItem.name}
+                                  </span>
+                                )}
+                                {completa.sides.map((s) => (
+                                  <span
+                                    key={s.weeklyMenuItemId}
+                                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm ${
+                                      s.isDessert
+                                        ? "bg-purple-100 text-purple-800"
+                                        : "bg-green-100 text-green-800"
+                                    }`}
+                                  >
+                                    {s.quantity > 1 && `${s.quantity}x `}{s.name}
+                                    <button
+                                      onClick={() =>
+                                        removeCompletaSide(day.num, cIndex, s.weeklyMenuItemId)
+                                      }
+                                      className="ml-0.5 hover:text-red-600 font-bold"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Entree Selection */}
+                            <div className="mb-3">
+                              <p className="text-sm text-gray-600 mb-1">
+                                Entree (1):
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {entrees.map((item) => (
+                                  <button
+                                    key={item.id}
+                                    onClick={() =>
+                                      setCompletaEntree(
+                                        day.num,
+                                        cIndex,
+                                        completa.entree?.id === item.id ? null : item
+                                      )
+                                    }
+                                    className={`px-3 py-1.5 rounded-md text-sm ${
+                                      completa.entree?.id === item.id
+                                        ? "bg-green-600 text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    }`}
+                                  >
+                                    {item.menuItem.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Sides Selection */}
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">
+                                Sides ({getTotalSideSlots(completa.sides)}/{SIDES_PER_COMPLETA}):
+                              </p>
+                              <div className="space-y-1">
+                                {sides.map((sideItem) => {
+                                  const existing = completa.sides.find(
+                                    (s) => s.weeklyMenuItemId === sideItem.id
+                                  );
+                                  const qty = existing?.quantity || 0;
+                                  const totalSlots = getTotalSideSlots(completa.sides);
+                                  const canAdd = totalSlots < SIDES_PER_COMPLETA;
+                                  const isDessert = sideItem.menuItem.isDessert;
+                                  const dessertCount = getDessertCount(completa.sides);
+                                  const dessertBlocked = isDessert && dessertCount >= 1 && qty === 0;
+
+                                  return (
+                                    <div
+                                      key={sideItem.id}
+                                      className="flex items-center justify-between"
+                                    >
+                                      <span className={`text-sm ${
+                                        isDessert ? "text-purple-700" : "text-gray-700"
+                                      }`}>
+                                        {sideItem.menuItem.name}
+                                        {isDessert && (
+                                          <span className="text-xs ml-1">(dessert)</span>
+                                        )}
+                                      </span>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() =>
+                                            updateCompletaSide(day.num, cIndex, sideItem, -1)
+                                          }
+                                          disabled={qty === 0}
+                                          className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center"
+                                        >
+                                          −
+                                        </button>
+                                        <span className="w-6 text-center text-base font-semibold text-gray-900">
+                                          {qty}
+                                        </span>
+                                        <button
+                                          onClick={() =>
+                                            updateCompletaSide(day.num, cIndex, sideItem, 1)
+                                          }
+                                          disabled={!canAdd || dessertBlocked}
+                                          className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Extra Entrees */}
+                        {daySel.extraEntrees.length > 0 && (
+                          <div className="border border-blue-200 rounded-lg p-3 mb-3 bg-blue-50">
+                            <p className="font-medium text-blue-800 mb-2">Extra Entrees</p>
+                            {entrees.map((item) => {
+                              const existing = daySel.extraEntrees.find(
+                                (e) => e.item.id === item.id
                               );
+                              const qty = existing?.quantity || 0;
                               return (
-                                <button
-                                  key={item.id}
-                                  onClick={() => toggleSide(day.num, item)}
-                                  className={`px-3 py-2 rounded-md text-sm ${
-                                    isSelected
-                                      ? "bg-green-600 text-white"
-                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                  }`}
-                                >
-                                  {item.menuItem.name}
-                                </button>
+                                <div key={item.id} className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-gray-700">
+                                    {item.menuItem.name}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => updateExtraEntree(day.num, item, -1)}
+                                      disabled={qty === 0}
+                                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-6 text-center text-base font-semibold text-gray-900">{qty}</span>
+                                    <button
+                                      onClick={() => updateExtraEntree(day.num, item, 1)}
+                                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold hover:bg-gray-300 flex items-center justify-center"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
                               );
                             })}
                           </div>
+                        )}
+
+                        {/* Extra Sides */}
+                        {daySel.extraSides.length > 0 && (
+                          <div className="border border-orange-200 rounded-lg p-3 mb-3 bg-orange-50">
+                            <p className="font-medium text-orange-800 mb-2">Extra Sides</p>
+                            {sides.map((sideItem) => {
+                              const existing = daySel.extraSides.find(
+                                (s) => s.weeklyMenuItemId === sideItem.id
+                              );
+                              const qty = existing?.quantity || 0;
+                              return (
+                                <div key={sideItem.id} className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-gray-700">
+                                    {sideItem.menuItem.name}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => updateExtraSide(day.num, sideItem, -1)}
+                                      disabled={qty === 0}
+                                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-6 text-center text-base font-semibold text-gray-900">{qty}</span>
+                                    <button
+                                      onClick={() => updateExtraSide(day.num, sideItem, 1)}
+                                      className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold hover:bg-gray-300 flex items-center justify-center"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Add Extras Buttons */}
+                        <div className="flex gap-2 mt-2">
+                          {daySel.extraEntrees.length === 0 && (
+                            <button
+                              onClick={() => updateExtraEntree(day.num, entrees[0], 1)}
+                              className="px-3 py-1 text-xs text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50"
+                            >
+                              + Extra Entrees
+                            </button>
+                          )}
+                          {daySel.extraSides.length === 0 && (
+                            <button
+                              onClick={() => updateExtraSide(day.num, sides[0], 1)}
+                              className="px-3 py-1 text-xs text-orange-600 border border-orange-300 rounded-md hover:bg-orange-50"
+                            >
+                              + Extra Sides
+                            </button>
+                          )}
                         </div>
                       </>
+                    )}
+
+                    {!dayDisabled && !hasItems && (
+                      <p className="text-sm text-gray-400">
+                        Click &quot;+ Add Completa&quot; to start ordering for this day
+                      </p>
                     )}
                   </div>
                 );
@@ -440,49 +798,53 @@ export default function OrderPage() {
                   Order Summary
                 </h3>
 
-                {completeDays.length === 0 ? (
+                {orderableDays.length === 0 ? (
                   <p className="text-gray-500 text-sm">
-                    Select items to build your order
+                    Add items to build your order
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {completeDays.map((dayNum) => {
-                      const day = DAYS.find((d) => d.num === dayNum)!;
-                      const sel = selections[dayNum];
+                    {orderableDays.map((dayNum) => {
+                      const dayName = DAYS.find((d) => d.num === dayNum)!.name;
+                      const daySel = getDaySelection(dayNum);
                       return (
-                        <div
-                          key={dayNum}
-                          className="border-b border-gray-100 pb-3"
-                        >
-                          <p className="font-medium text-gray-900">{day.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {sel.entree?.menuItem.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            + {sel.sides.map((s) => s.menuItem.name).join(", ")}
-                          </p>
-                          <p className="text-sm text-green-600">
-                            {formatPrice(COMPLETA_PRICE)}
-                          </p>
+                        <div key={dayNum} className="border-b border-gray-100 pb-3">
+                          <p className="font-medium text-gray-900">{dayName}</p>
+                          {daySel.completas.map((c, i) => (
+                            <div key={i} className="text-sm text-gray-600 ml-2 mt-1">
+                              <p className="font-medium">
+                                Completa #{i + 1}
+                                {!isCompletaComplete(c) && (
+                                  <span className="text-yellow-600 ml-1">(incomplete)</span>
+                                )}
+                              </p>
+                              {c.entree && <p className="ml-2">{c.entree.menuItem.name}</p>}
+                              {c.sides.map((s, si) => (
+                                <p key={si} className="ml-2 text-gray-500">
+                                  + {s.quantity}x {s.name}
+                                </p>
+                              ))}
+                            </div>
+                          ))}
+                          {daySel.extraEntrees.map((e, i) => (
+                            <p key={`ee-${i}`} className="text-sm text-blue-600 ml-2">
+                              Extra: {e.quantity}x {e.item.menuItem.name}
+                            </p>
+                          ))}
+                          {daySel.extraSides.map((s, i) => (
+                            <p key={`es-${i}`} className="text-sm text-orange-600 ml-2">
+                              Extra: {s.quantity}x {s.name}
+                            </p>
+                          ))}
                         </div>
                       );
                     })}
                   </div>
                 )}
 
-                <div className="border-t border-gray-200 mt-4 pt-4">
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span>Total</span>
-                    <span>{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {completeDays.length} day(s) selected
-                  </p>
-                </div>
-
                 <button
                   onClick={handleSubmitOrder}
-                  disabled={completeDays.length === 0 || submitting}
+                  disabled={orderableDays.length === 0 || submitting}
                   className="w-full mt-4 bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Submitting..." : "Place Order"}

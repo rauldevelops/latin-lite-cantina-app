@@ -41,11 +41,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch menu items to get prices
-    const menuItemIds = orderDays.flatMap((day: { entreeId: string; sideIds: string[] }) => [
-      day.entreeId,
-      ...day.sideIds,
-    ]);
+    type OrderDayPayload = {
+      dayOfWeek: number;
+      completas: { entreeId: string; sides: { menuItemId: string; quantity: number }[] }[];
+      extraEntrees: { menuItemId: string; quantity: number }[];
+      extraSides: { menuItemId: string; quantity: number }[];
+    };
+
+    // Collect all unique menu item IDs
+    const menuItemIds: string[] = [
+      ...new Set(
+        (orderDays as OrderDayPayload[]).flatMap((day) => [
+          ...day.completas.flatMap((c) => [
+            c.entreeId,
+            ...c.sides.map((s) => s.menuItemId),
+          ]),
+          ...day.extraEntrees.map((e) => e.menuItemId),
+          ...day.extraSides.map((s) => s.menuItemId),
+        ])
+      ),
+    ];
 
     const menuItems = await prisma.menuItem.findMany({
       where: { id: { in: menuItemIds } },
@@ -53,9 +68,13 @@ export async function POST(request: Request) {
 
     const menuItemMap = new Map(menuItems.map((item) => [item.id, item]));
 
-    // Calculate totals
-    const subtotal = orderDays.length * COMPLETA_PRICE;
-    const deliveryFee = 0; // Can be calculated based on address later
+    // Calculate totals (pricing TBD - placeholder for now)
+    const typedOrderDays = orderDays as OrderDayPayload[];
+    const totalCompletas = typedOrderDays.reduce(
+      (sum, day) => sum + day.completas.length, 0
+    );
+    const subtotal = totalCompletas * COMPLETA_PRICE;
+    const deliveryFee = 0;
     const totalAmount = subtotal + deliveryFee;
 
     // Create the order with nested orderDays and orderItems
@@ -68,34 +87,66 @@ export async function POST(request: Request) {
         deliveryFee,
         totalAmount,
         orderDays: {
-          create: orderDays.map((day: { dayOfWeek: number; entreeId: string; sideIds: string[] }) => {
-            const completaGroupId = `${Date.now()}-${day.dayOfWeek}`;
-            const entree = menuItemMap.get(day.entreeId);
-            
+          create: typedOrderDays.map((day) => {
+            const orderItems: {
+              menuItemId: string;
+              quantity: number;
+              unitPrice: number;
+              isCompleta: boolean;
+              completaGroupId: string | null;
+            }[] = [];
+
+            // Completas
+            day.completas.forEach((completa, cIndex) => {
+              const groupId = `${Date.now()}-${day.dayOfWeek}-${cIndex}`;
+              const entree = menuItemMap.get(completa.entreeId);
+              orderItems.push({
+                menuItemId: completa.entreeId,
+                quantity: 1,
+                unitPrice: Number(entree?.price || 0),
+                isCompleta: true,
+                completaGroupId: groupId,
+              });
+              completa.sides.forEach((side) => {
+                const sideItem = menuItemMap.get(side.menuItemId);
+                orderItems.push({
+                  menuItemId: side.menuItemId,
+                  quantity: side.quantity,
+                  unitPrice: Number(sideItem?.price || 0),
+                  isCompleta: true,
+                  completaGroupId: groupId,
+                });
+              });
+            });
+
+            // Extra entrees
+            day.extraEntrees.forEach((extra) => {
+              const item = menuItemMap.get(extra.menuItemId);
+              orderItems.push({
+                menuItemId: extra.menuItemId,
+                quantity: extra.quantity,
+                unitPrice: Number(item?.price || 0),
+                isCompleta: false,
+                completaGroupId: null,
+              });
+            });
+
+            // Extra sides
+            day.extraSides.forEach((extra) => {
+              const item = menuItemMap.get(extra.menuItemId);
+              orderItems.push({
+                menuItemId: extra.menuItemId,
+                quantity: extra.quantity,
+                unitPrice: Number(item?.price || 0),
+                isCompleta: false,
+                completaGroupId: null,
+              });
+            });
+
             return {
               dayOfWeek: day.dayOfWeek,
               orderItems: {
-                create: [
-                  // Entree
-                  {
-                    menuItemId: day.entreeId,
-                    quantity: 1,
-                    unitPrice: entree?.price || 0,
-                    isCompleta: true,
-                    completaGroupId,
-                  },
-                  // Sides
-                  ...day.sideIds.map((sideId: string) => {
-                    const side = menuItemMap.get(sideId);
-                    return {
-                      menuItemId: sideId,
-                      quantity: 1,
-                      unitPrice: side?.price || 0,
-                      isCompleta: true,
-                      completaGroupId,
-                    };
-                  }),
-                ],
+                create: orderItems,
               },
             };
           }),
