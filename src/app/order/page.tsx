@@ -84,6 +84,7 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [expandedCompletas, setExpandedCompletas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchMenus() {
@@ -323,6 +324,20 @@ export default function OrderPage() {
     });
   }
 
+  function toggleCompletaExpanded(dayOfWeek: number, completaIndex: number) {
+    const key = `${dayOfWeek}-${completaIndex}`;
+    setExpandedCompletas((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function isCompletaExpanded(dayOfWeek: number, completaIndex: number): boolean {
+    return expandedCompletas.has(`${dayOfWeek}-${completaIndex}`);
+  }
+
   function dayHasSelections(dayOfWeek: number): boolean {
     const day = getDaySelection(dayOfWeek);
     return (
@@ -559,12 +574,22 @@ export default function OrderPage() {
                                   </span>
                                 )}
                               </span>
-                              <button
-                                onClick={() => removeCompleta(day.num, cIndex)}
-                                className="text-red-500 text-sm hover:text-red-700"
-                              >
-                                Remove
-                              </button>
+                              <div className="flex items-center gap-3">
+                                {isCompletaComplete(completa) && (
+                                  <button
+                                    onClick={() => toggleCompletaExpanded(day.num, cIndex)}
+                                    className="text-blue-600 text-sm hover:text-blue-800"
+                                  >
+                                    {isCompletaExpanded(day.num, cIndex) ? "Collapse" : "Edit"}
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => removeCompleta(day.num, cIndex)}
+                                  className="text-red-500 text-sm hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+                              </div>
                             </div>
 
                             {/* Selection Summary */}
@@ -598,6 +623,9 @@ export default function OrderPage() {
                               </div>
                             )}
 
+                            {/* Entree & Sides Pickers - collapsed when complete unless expanded */}
+                            {(!isCompletaComplete(completa) || isCompletaExpanded(day.num, cIndex)) && (
+                            <>
                             {/* Entree Selection */}
                             <div className="mb-3">
                               <p className="text-sm text-gray-600 mb-1">
@@ -684,6 +712,8 @@ export default function OrderPage() {
                                 })}
                               </div>
                             </div>
+                            </>
+                            )}
                           </div>
                         ))}
 
