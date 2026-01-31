@@ -21,10 +21,24 @@ type OrderDay = {
   orderItems: OrderItem[];
 };
 
+type Address = {
+  street: string;
+  unit: string | null;
+  city: string;
+  state: string;
+  zipCode: string;
+};
+
 type Order = {
   id: string;
   orderNumber: string;
+  subtotal: number;
+  deliveryFee: number;
   totalAmount: number;
+  isPickup: boolean;
+  paymentMethod: string | null;
+  paymentStatus: string;
+  address: Address | null;
   status: string;
   createdAt: string;
   orderDays: OrderDay[];
@@ -106,6 +120,34 @@ export default function OrderConfirmationPage() {
             </p>
           </div>
 
+          {/* Delivery / Pickup Info */}
+          <div className="text-left border-t pt-6 mb-6">
+            <h2 className="font-semibold text-gray-900 mb-2">
+              {order.isPickup ? "Pickup" : "Delivery"}
+            </h2>
+            {order.isPickup ? (
+              <p className="text-sm text-gray-600">Pickup at Latin Lite Cantina</p>
+            ) : order.address ? (
+              <div className="text-sm text-gray-600">
+                <p>{order.address.street}{order.address.unit ? `, ${order.address.unit}` : ""}</p>
+                <p>{order.address.city}, {order.address.state} {order.address.zipCode}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Delivery address not available</p>
+            )}
+          </div>
+
+          {/* Payment Info */}
+          <div className="text-left border-t pt-6 mb-6">
+            <h2 className="font-semibold text-gray-900 mb-2">Payment</h2>
+            <p className="text-sm text-gray-600">
+              {order.paymentMethod === "CARD" ? "Credit / Debit Card" : order.paymentMethod || "N/A"}
+              {" — "}
+              <span className="text-yellow-700 font-medium">Payment pending</span>
+            </p>
+          </div>
+
+          {/* Order Details */}
           <div className="text-left border-t pt-6">
             <h2 className="font-semibold text-gray-900 mb-4">Order Details</h2>
             {order.orderDays
@@ -117,15 +159,25 @@ export default function OrderConfirmationPage() {
                   </p>
                   <ul className="text-sm text-gray-600 mt-1">
                     {day.orderItems.map((item) => (
-                      <li key={item.id}>• {item.menuItem.name}</li>
+                      <li key={item.id}>• {item.quantity > 1 ? `${item.quantity}x ` : ""}{item.menuItem.name}</li>
                     ))}
                   </ul>
                 </div>
               ))}
 
-            <div className="flex justify-between text-lg font-semibold mt-4 pt-4 border-t">
-              <span>Total</span>
-              <span>${Number(order.totalAmount).toFixed(2)}</span>
+            <div className="space-y-1 mt-4 pt-4 border-t text-sm text-gray-600">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>${Number(order.subtotal).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery Fee</span>
+                <span>{order.isPickup ? "FREE" : `$${Number(order.deliveryFee).toFixed(2)}`}</span>
+              </div>
+              <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
+                <span>Total</span>
+                <span>${Number(order.totalAmount).toFixed(2)}</span>
+              </div>
             </div>
           </div>
 

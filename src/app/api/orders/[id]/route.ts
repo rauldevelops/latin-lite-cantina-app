@@ -18,6 +18,7 @@ export async function GET(
       where: { id },
       include: {
         weeklyMenu: true,
+        address: true,
         orderDays: {
           include: {
             orderItems: {

@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const COMPLETA_PRICE = 12.0;
+async function getPricingConfig() {
+  const config = await prisma.pricingConfig.findFirst();
+  if (!config) throw new Error("Pricing not configured");
+  return {
+    completaPrice: Number(config.completaPrice),
+    extraEntreePrice: Number(config.extraEntreePrice),
+    extraSidePrice: Number(config.extraSidePrice),
+    deliveryFeePerMeal: Number(config.deliveryFeePerMeal),
+  };
+}
 
 function generateOrderNumber(): string {
   const year = new Date().getFullYear();
@@ -20,13 +29,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please log in to place an order" }, { status: 401 });
     }
 
-    const { weeklyMenuId, orderDays } = await request.json();
+    const { weeklyMenuId, orderDays, isPickup, addressId } = await request.json();
+
+    const MIN_DAYS_PER_ORDER = 3;
 
     if (!weeklyMenuId || !orderDays || orderDays.length === 0) {
       return NextResponse.json(
         { error: "Invalid order data" },
         { status: 400 }
       );
+    }
+
+    if (orderDays.length < MIN_DAYS_PER_ORDER) {
+      return NextResponse.json(
+        { error: `Minimum ${MIN_DAYS_PER_ORDER} days per order required` },
+        { status: 400 }
+      );
+    }
+
+    for (const day of orderDays) {
+      if (!day.completas || day.completas.length === 0) {
+        return NextResponse.json(
+          { error: `Each day must have at least 1 completa` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate delivery/pickup
+    if (!isPickup) {
+      if (!addressId) {
+        return NextResponse.json(
+          { error: "Delivery address is required" },
+          { status: 400 }
+        );
+      }
+      const address = await prisma.address.findUnique({ where: { id: addressId } });
+      if (!address || address.userId !== session.user.id) {
+        return NextResponse.json(
+          { error: "Invalid delivery address" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate the weekly menu exists and is published
@@ -62,19 +106,35 @@ export async function POST(request: Request) {
       ),
     ];
 
-    const menuItems = await prisma.menuItem.findMany({
+    // Validate all menu items exist
+    const menuItemCount = await prisma.menuItem.count({
       where: { id: { in: menuItemIds } },
     });
+    if (menuItemCount !== menuItemIds.length) {
+      return NextResponse.json(
+        { error: "One or more menu items not found" },
+        { status: 400 }
+      );
+    }
 
-    const menuItemMap = new Map(menuItems.map((item) => [item.id, item]));
-
-    // Calculate totals (pricing TBD - placeholder for now)
+    const pricing = await getPricingConfig();
     const typedOrderDays = orderDays as OrderDayPayload[];
-    const totalCompletas = typedOrderDays.reduce(
-      (sum, day) => sum + day.completas.length, 0
-    );
-    const subtotal = totalCompletas * COMPLETA_PRICE;
-    const deliveryFee = 0;
+
+    // Calculate totals
+    let subtotal = 0;
+    let totalMeals = 0;
+    for (const day of typedOrderDays) {
+      subtotal += day.completas.length * pricing.completaPrice;
+      totalMeals += day.completas.length;
+      for (const extra of day.extraEntrees) {
+        subtotal += extra.quantity * pricing.extraEntreePrice;
+        totalMeals += extra.quantity;
+      }
+      for (const extra of day.extraSides) {
+        subtotal += extra.quantity * pricing.extraSidePrice;
+      }
+    }
+    const deliveryFee = isPickup ? 0 : totalMeals * pricing.deliveryFeePerMeal;
     const totalAmount = subtotal + deliveryFee;
 
     // Create the order with nested orderDays and orderItems
@@ -83,6 +143,10 @@ export async function POST(request: Request) {
         orderNumber: generateOrderNumber(),
         customerId: session.user.id,
         weeklyMenuId,
+        isPickup: !!isPickup,
+        addressId: isPickup ? null : addressId,
+        paymentMethod: "CARD",
+        paymentStatus: "PENDING",
         subtotal,
         deliveryFee,
         totalAmount,
@@ -96,23 +160,21 @@ export async function POST(request: Request) {
               completaGroupId: string | null;
             }[] = [];
 
-            // Completas
+            // Completas (unitPrice = 0 for individual items; pricing is at bundle level)
             day.completas.forEach((completa, cIndex) => {
               const groupId = `${Date.now()}-${day.dayOfWeek}-${cIndex}`;
-              const entree = menuItemMap.get(completa.entreeId);
               orderItems.push({
                 menuItemId: completa.entreeId,
                 quantity: 1,
-                unitPrice: Number(entree?.price || 0),
+                unitPrice: pricing.completaPrice,
                 isCompleta: true,
                 completaGroupId: groupId,
               });
               completa.sides.forEach((side) => {
-                const sideItem = menuItemMap.get(side.menuItemId);
                 orderItems.push({
                   menuItemId: side.menuItemId,
                   quantity: side.quantity,
-                  unitPrice: Number(sideItem?.price || 0),
+                  unitPrice: 0,
                   isCompleta: true,
                   completaGroupId: groupId,
                 });
@@ -121,11 +183,10 @@ export async function POST(request: Request) {
 
             // Extra entrees
             day.extraEntrees.forEach((extra) => {
-              const item = menuItemMap.get(extra.menuItemId);
               orderItems.push({
                 menuItemId: extra.menuItemId,
                 quantity: extra.quantity,
-                unitPrice: Number(item?.price || 0),
+                unitPrice: pricing.extraEntreePrice,
                 isCompleta: false,
                 completaGroupId: null,
               });
@@ -133,11 +194,10 @@ export async function POST(request: Request) {
 
             // Extra sides
             day.extraSides.forEach((extra) => {
-              const item = menuItemMap.get(extra.menuItemId);
               orderItems.push({
                 menuItemId: extra.menuItemId,
                 quantity: extra.quantity,
-                unitPrice: Number(item?.price || 0),
+                unitPrice: pricing.extraSidePrice,
                 isCompleta: false,
                 completaGroupId: null,
               });

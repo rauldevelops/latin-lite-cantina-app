@@ -139,18 +139,26 @@ model MenuItem {
   name        String
   description String?
   type        MenuItemType
-  price       Decimal      @db.Decimal(10, 2)
   isStaple    Boolean      @default(false)  // Always available (masitas, picadillo)
   isActive    Boolean      @default(true)
   isDessert   Boolean      @default(false)  // Limits to 1 per completa
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  
+
   weeklyMenuItems WeeklyMenuItem[]
   orderItems      OrderItem[]
-  
+
   @@index([type])
   @@index([isActive])
+}
+
+model PricingConfig {
+  id                 String   @id @default(cuid())
+  completaPrice      Decimal  @db.Decimal(10, 2)
+  extraEntreePrice   Decimal  @db.Decimal(10, 2)
+  extraSidePrice     Decimal  @db.Decimal(10, 2)
+  deliveryFeePerMeal Decimal  @db.Decimal(10, 2)
+  updatedAt          DateTime @updatedAt
 }
 
 model WeeklyMenu {

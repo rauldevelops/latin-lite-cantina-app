@@ -59,6 +59,7 @@ const DAYS = [
 ];
 
 const SIDES_PER_COMPLETA = 3;
+const MIN_DAYS_PER_ORDER = 3;
 
 function emptyCompleta(): Completa {
   return { entree: null, sides: [] };
@@ -82,7 +83,6 @@ export default function OrderPage() {
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [selections, setSelections] = useState<OrderSelections>({});
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [expandedCompletas, setExpandedCompletas] = useState<Set<string>>(new Set());
 
@@ -380,17 +380,27 @@ export default function OrderPage() {
 
   async function handleSubmitOrder() {
     const orderableDays = getOrderableDays();
-    if (orderableDays.length === 0) {
-      alert("Please add at least one item to your order");
+
+    // Minimum days validation
+    if (orderableDays.length < MIN_DAYS_PER_ORDER) {
+      alert(
+        `You must order for at least ${MIN_DAYS_PER_ORDER} days per week. You currently have ${orderableDays.length} day${orderableDays.length === 1 ? "" : "s"} selected.`
+      );
       return;
     }
 
-    // Validate all completas are complete
+    // Each day must have at least 1 completa, and all completas must be complete
     for (const dayNum of orderableDays) {
+      const dayName = DAYS.find((d) => d.num === dayNum)?.name;
       const day = getDaySelection(dayNum);
+
+      if (day.completas.length === 0) {
+        alert(`${dayName} needs at least 1 completa.`);
+        return;
+      }
+
       for (let i = 0; i < day.completas.length; i++) {
         if (!isCompletaComplete(day.completas[i])) {
-          const dayName = DAYS.find((d) => d.num === dayNum)?.name;
           alert(
             `${dayName} Completa #${i + 1} is incomplete. Each completa needs 1 entree + ${SIDES_PER_COMPLETA} sides.`
           );
@@ -399,51 +409,56 @@ export default function OrderPage() {
       }
     }
 
-    setSubmitting(true);
-    setError("");
-
-    try {
-      const menu = menus[selectedMenuIndex];
-      const orderDays = orderableDays.map((dayOfWeek) => {
-        const day = getDaySelection(dayOfWeek);
-        return {
-          dayOfWeek,
-          completas: day.completas.map((c) => ({
-            entreeId: c.entree!.menuItem.id,
-            sides: c.sides.map((s) => ({
-              menuItemId: s.menuItemId,
-              quantity: s.quantity,
-            })),
-          })),
-          extraEntrees: day.extraEntrees.map((e) => ({
-            menuItemId: e.item.menuItem.id,
-            quantity: e.quantity,
-          })),
-          extraSides: day.extraSides.map((s) => ({
+    const menu = menus[selectedMenuIndex];
+    const orderDays = orderableDays.map((dayOfWeek) => {
+      const day = getDaySelection(dayOfWeek);
+      return {
+        dayOfWeek,
+        completas: day.completas.map((c) => ({
+          entreeId: c.entree!.menuItem.id,
+          sides: c.sides.map((s) => ({
             menuItemId: s.menuItemId,
             quantity: s.quantity,
           })),
-        };
-      });
+        })),
+        extraEntrees: day.extraEntrees.map((e) => ({
+          menuItemId: e.item.menuItem.id,
+          quantity: e.quantity,
+        })),
+        extraSides: day.extraSides.map((s) => ({
+          menuItemId: s.menuItemId,
+          quantity: s.quantity,
+        })),
+      };
+    });
 
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weeklyMenuId: menu.id, orderDays }),
-      });
+    // Build human-readable summary for checkout page
+    const summary = orderableDays.map((dayOfWeek) => {
+      const dayName = DAYS.find((d) => d.num === dayOfWeek)!.name;
+      const day = getDaySelection(dayOfWeek);
+      return {
+        dayOfWeek,
+        dayName,
+        completas: day.completas.map((c) => ({
+          entreeName: c.entree!.menuItem.name,
+          sideNames: c.sides.map((s) => `${s.quantity > 1 ? s.quantity + "x " : ""}${s.name}`),
+        })),
+        extraEntrees: day.extraEntrees.map((e) => ({
+          name: e.item.menuItem.name,
+          quantity: e.quantity,
+        })),
+        extraSides: day.extraSides.map((s) => ({
+          name: s.name,
+          quantity: s.quantity,
+        })),
+      };
+    });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to submit order");
-      }
-
-      const order = await res.json();
-      router.push(`/order/confirmation?id=${order.id}`);
-    } catch (err) {
-      setError(`Failed to submit order: ${err}`);
-    } finally {
-      setSubmitting(false);
-    }
+    sessionStorage.setItem(
+      "checkoutOrderData",
+      JSON.stringify({ weeklyMenuId: menu.id, orderDays, summary })
+    );
+    router.push("/order/checkout");
   }
 
   if (loading) {
@@ -874,10 +889,10 @@ export default function OrderPage() {
 
                 <button
                   onClick={handleSubmitOrder}
-                  disabled={orderableDays.length === 0 || submitting}
+                  disabled={orderableDays.length === 0}
                   className="w-full mt-4 bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "Submitting..." : "Place Order"}
+                  Continue to Checkout
                 </button>
               </div>
             </div>

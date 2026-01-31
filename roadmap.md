@@ -888,25 +888,25 @@ async function migrateCustomers(csvPath: string) {
 
 ## 12. Open Questions & Decisions
 
-### Pricing & Business Logic
-1. **Delivery fee structure:** Confirm the exact formula (flat per day + per meal?)
-2. **Completa pricing:** Is a completa priced as a bundle, or sum of parts?
-3. **Extra items pricing:** Same price as when part of completa?
-4. **Minimum order enforcement:** Hard block or warning?
-5. **Order cutoff:** Exactly what time on Tuesday? (Midnight? 6 PM?)
+### Pricing & Business Logic (RESOLVED)
+1. **Delivery fee structure:** Per meal (not per day or flat)
+2. **Completa pricing:** Flat bundle price regardless of item selection
+3. **Extra items pricing:** A la carte with uniform pricing per category (e.g. all extra entrees same price, all extra sides same price)
+4. **Minimum order enforcement:** Hard block — prevent submission and alert user with reason
+5. **Order cutoff:** Midnight Tuesday (start of Wednesday)
 
-### Operations
-6. **Multiple addresses:** Can a customer have different delivery addresses for different days in the same week?
-7. **Partial delivery:** What happens if a driver can't deliver? Refund? Credit? Reattempt?
-8. **Order modifications:** Can customers modify orders after placing? Until when?
-9. **Pickup location:** Is there one location, or multiple?
+### Operations (RESOLVED)
+6. **Multiple addresses:** No — one delivery address per order
+7. **Partial delivery:** Food brought back to store, customer must pick up
+8. **Order modifications:** No customer-facing modifications. Admin emergency edits only (not MVP)
+9. **Pickup location:** One location
 
-### Technical
-10. **Email templates:** Do you have brand colors/logo to incorporate?
-11. **Domain:** Do you have a domain, or need to register one?
-12. **Existing website:** Will this replace the current site, or live alongside it?
+### Technical (RESOLVED)
+10. **Email templates:** Brand colors/logo available
+11. **Domain:** Domain registered
+12. **Existing website:** This app will replace the current site
 
-### Phase 2+ Planning
+### Phase 2+ Planning (OPEN)
 13. **Subscription frequency:** Weekly only, or also bi-weekly options?
 14. **Subscription customization:** Can subscribers exclude certain ingredients/categories?
 15. **Driver count:** How many drivers typically? Do they need individual logins?

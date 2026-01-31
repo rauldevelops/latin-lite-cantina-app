@@ -35,14 +35,13 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { name, description, type, price, isDessert } = data;
+    const { name, description, type, isDessert } = data;
 
     const menuItem = await prisma.menuItem.create({
       data: {
         name,
         description,
         type,
-        price: parseFloat(price),
         isDessert: isDessert || false,
       },
     });

@@ -9,7 +9,6 @@ type MenuItem = {
   name: string;
   description: string | null;
   type: "ENTREE" | "SIDE";
-  price: number;
   isActive: boolean;
   isDessert: boolean;
 };
@@ -60,7 +59,6 @@ export default function EditMenuItemPage() {
       name: formData.get("name"),
       description: formData.get("description") || null,
       type: formData.get("type"),
-      price: formData.get("price"),
       isDessert: formData.get("isDessert") === "on",
     };
 
@@ -197,30 +195,6 @@ export default function EditMenuItemPage() {
               </label>
             </div>
           )}
-
-          <div>
-            <label
-              htmlFor="price"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Price *
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500">$</span>
-              </div>
-              <input
-                id="price"
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                defaultValue={Number(menuItem.price).toFixed(2)}
-                className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md text-gray-900"
-              />
-            </div>
-          </div>
 
           <div className="flex gap-4 pt-4">
             <button
