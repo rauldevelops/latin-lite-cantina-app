@@ -3,6 +3,32 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+async function getPricingConfig() {
+  const config = await prisma.pricingConfig.findFirst();
+  if (!config) throw new Error("Pricing not configured");
+  return {
+    completaPrice: Number(config.completaPrice),
+    extraEntreePrice: Number(config.extraEntreePrice),
+    extraSidePrice: Number(config.extraSidePrice),
+    deliveryFeePerMeal: Number(config.deliveryFeePerMeal),
+  };
+}
+
+function generateOrderNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, "0");
+  return `LL-${year}-${random}`;
+}
+
+type OrderDayPayload = {
+  dayOfWeek: number;
+  completas: { entreeId: string; sides: { menuItemId: string; quantity: number }[] }[];
+  extraEntrees: { menuItemId: string; quantity: number }[];
+  extraSides: { menuItemId: string; quantity: number }[];
+};
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -58,6 +84,210 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session || session.user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const {
+      customerId,
+      weeklyMenuId,
+      orderDays,
+      isPickup,
+      addressId,
+      paymentMethod,
+      paymentStatus,
+      notes,
+    } = await request.json();
+
+    if (!customerId || !weeklyMenuId || !orderDays || orderDays.length === 0) {
+      return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
+    }
+
+    const MIN_DAYS_PER_ORDER = 3;
+    if (orderDays.length < MIN_DAYS_PER_ORDER) {
+      return NextResponse.json(
+        { error: `Minimum ${MIN_DAYS_PER_ORDER} days per order required` },
+        { status: 400 }
+      );
+    }
+
+    for (const day of orderDays) {
+      if (!day.completas || day.completas.length === 0) {
+        return NextResponse.json(
+          { error: "Each day must have at least 1 completa" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate customer
+    const customer = await prisma.user.findUnique({ where: { id: customerId } });
+    if (!customer || customer.role !== "CUSTOMER") {
+      return NextResponse.json({ error: "Customer not found" }, { status: 400 });
+    }
+
+    // Validate delivery address
+    if (!isPickup) {
+      if (!addressId) {
+        return NextResponse.json({ error: "Delivery address is required" }, { status: 400 });
+      }
+      const address = await prisma.address.findUnique({ where: { id: addressId } });
+      if (!address || address.userId !== customerId) {
+        return NextResponse.json({ error: "Invalid delivery address" }, { status: 400 });
+      }
+    }
+
+    // Validate weekly menu
+    const weeklyMenu = await prisma.weeklyMenu.findUnique({ where: { id: weeklyMenuId } });
+    if (!weeklyMenu || !weeklyMenu.isPublished) {
+      return NextResponse.json({ error: "Menu not available for ordering" }, { status: 400 });
+    }
+
+    // Validate payment method
+    const validMethods = ["CARD", "CASH", "CHECK", "CREDIT_ACCOUNT"];
+    if (!paymentMethod || !validMethods.includes(paymentMethod)) {
+      return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
+    }
+
+    const validStatuses = ["PENDING", "PAID", "CREDIT_ACCOUNT"];
+    if (!paymentStatus || !validStatuses.includes(paymentStatus)) {
+      return NextResponse.json({ error: "Invalid payment status" }, { status: 400 });
+    }
+
+    // Validate menu items
+    const typedOrderDays = orderDays as OrderDayPayload[];
+    const menuItemIds: string[] = [
+      ...new Set(
+        typedOrderDays.flatMap((day) => [
+          ...day.completas.flatMap((c) => [
+            c.entreeId,
+            ...c.sides.map((s) => s.menuItemId),
+          ]),
+          ...day.extraEntrees.map((e) => e.menuItemId),
+          ...day.extraSides.map((s) => s.menuItemId),
+        ])
+      ),
+    ];
+
+    const menuItemCount = await prisma.menuItem.count({
+      where: { id: { in: menuItemIds } },
+    });
+    if (menuItemCount !== menuItemIds.length) {
+      return NextResponse.json({ error: "One or more menu items not found" }, { status: 400 });
+    }
+
+    // Calculate pricing
+    const pricing = await getPricingConfig();
+    let subtotal = 0;
+    let totalMeals = 0;
+    for (const day of typedOrderDays) {
+      subtotal += day.completas.length * pricing.completaPrice;
+      totalMeals += day.completas.length;
+      for (const extra of day.extraEntrees) {
+        subtotal += extra.quantity * pricing.extraEntreePrice;
+        totalMeals += extra.quantity;
+      }
+      for (const extra of day.extraSides) {
+        subtotal += extra.quantity * pricing.extraSidePrice;
+      }
+    }
+    const deliveryFee = isPickup ? 0 : totalMeals * pricing.deliveryFeePerMeal;
+    const totalAmount = subtotal + deliveryFee;
+
+    // Create order
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: generateOrderNumber(),
+        customerId,
+        weeklyMenuId,
+        isPickup: !!isPickup,
+        addressId: isPickup ? null : addressId,
+        paymentMethod,
+        paymentStatus,
+        subtotal,
+        deliveryFee,
+        totalAmount,
+        notes: notes || null,
+        createdById: session.user.id,
+        orderDays: {
+          create: typedOrderDays.map((day) => {
+            const orderItems: {
+              menuItemId: string;
+              quantity: number;
+              unitPrice: number;
+              isCompleta: boolean;
+              completaGroupId: string | null;
+            }[] = [];
+
+            day.completas.forEach((completa, cIndex) => {
+              const groupId = `${Date.now()}-${day.dayOfWeek}-${cIndex}`;
+              orderItems.push({
+                menuItemId: completa.entreeId,
+                quantity: 1,
+                unitPrice: pricing.completaPrice,
+                isCompleta: true,
+                completaGroupId: groupId,
+              });
+              completa.sides.forEach((side) => {
+                orderItems.push({
+                  menuItemId: side.menuItemId,
+                  quantity: side.quantity,
+                  unitPrice: 0,
+                  isCompleta: true,
+                  completaGroupId: groupId,
+                });
+              });
+            });
+
+            day.extraEntrees.forEach((extra) => {
+              orderItems.push({
+                menuItemId: extra.menuItemId,
+                quantity: extra.quantity,
+                unitPrice: pricing.extraEntreePrice,
+                isCompleta: false,
+                completaGroupId: null,
+              });
+            });
+
+            day.extraSides.forEach((extra) => {
+              orderItems.push({
+                menuItemId: extra.menuItemId,
+                quantity: extra.quantity,
+                unitPrice: pricing.extraSidePrice,
+                isCompleta: false,
+                completaGroupId: null,
+              });
+            });
+
+            return {
+              dayOfWeek: day.dayOfWeek,
+              orderItems: { create: orderItems },
+            };
+          }),
+        },
+      },
+      include: {
+        customer: { select: { firstName: true, lastName: true } },
+        orderDays: {
+          include: { orderItems: { include: { menuItem: true } } },
+        },
+      },
+    });
+
+    return NextResponse.json(order, { status: 201 });
+  } catch (error) {
+    console.error("Error creating admin order:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

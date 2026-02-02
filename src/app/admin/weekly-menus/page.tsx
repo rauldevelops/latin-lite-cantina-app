@@ -101,7 +101,10 @@ export default function WeeklyMenusPage() {
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
 
       setWeeklyMenus(weeklyMenus.filter((menu) => menu.id !== id));
     } catch (err) {

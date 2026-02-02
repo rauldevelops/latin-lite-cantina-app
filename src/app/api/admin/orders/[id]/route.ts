@@ -81,3 +81,31 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  try {
+    const session = await auth();
+
+    if (!session || session.user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Delete payments first (no cascade)
+    await prisma.payment.deleteMany({ where: { orderId: id } });
+
+    // Order → OrderDay → OrderItem cascade via schema
+    await prisma.order.delete({ where: { id } });
+
+    return NextResponse.json({ message: "Deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+}

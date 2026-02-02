@@ -58,8 +58,6 @@ const DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const ORDER_STATUSES = [
   "PENDING",
   "CONFIRMED",
-  "PREPARING",
-  "OUT_FOR_DELIVERY",
   "DELIVERED",
   "CANCELLED",
 ];
@@ -69,8 +67,6 @@ const PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED", "CREDIT_ACCOU
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
   CONFIRMED: "bg-blue-100 text-blue-800",
-  PREPARING: "bg-purple-100 text-purple-800",
-  OUT_FOR_DELIVERY: "bg-indigo-100 text-indigo-800",
   DELIVERED: "bg-green-100 text-green-800",
   CANCELLED: "bg-red-100 text-red-800",
 };
@@ -161,6 +157,26 @@ export default function AdminOrderDetailPage() {
       setError(`Failed to update order: ${err}`);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!order) return;
+    if (!confirm(`Permanently delete order ${order.orderNumber}? This cannot be undone.`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+
+      router.push("/admin/orders");
+    } catch (err) {
+      setError(`Failed to delete order: ${err}`);
     }
   }
 
@@ -412,6 +428,13 @@ export default function AdminOrderDetailPage() {
                 className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
               >
                 {saving ? "Saving..." : "Save Changes"}
+              </button>
+
+              <button
+                onClick={handleDelete}
+                className="w-full py-2 px-4 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+              >
+                Delete Order
               </button>
             </div>
           </div>

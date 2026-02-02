@@ -90,6 +90,18 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check for existing orders
+    const orderCount = await prisma.order.count({
+      where: { weeklyMenuId: params.id },
+    });
+
+    if (orderCount > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete: ${orderCount} order(s) are linked to this menu` },
+        { status: 400 }
+      );
+    }
+
     // Delete associated menu items first
     await prisma.weeklyMenuItem.deleteMany({
       where: { weeklyMenuId: params.id },
