@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { formatPhoneNumber } from "@/lib/formatPhone";
 
 // ── Types ──
 
@@ -757,7 +758,7 @@ export default function AdminCreateOrderPage() {
                         type="text"
                         placeholder="Phone (optional)"
                         value={newCustomer.phone}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, phone: formatPhoneNumber(e.target.value) })}
                         className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
                       />
                     </div>

@@ -126,12 +126,24 @@ model Address {
   zipCode       String
   isDefault     Boolean  @default(false)
   deliveryNotes String?  // Gate codes, special instructions
+  driverId      String?
+  driver        Driver?  @relation(fields: [driverId], references: [id])
+  stopNumber    Int?
   createdAt     DateTime @default(now())
-  
+
   orders        Order[]
-  
+
   @@index([userId])
   @@index([zipCode])
+  @@index([driverId])
+}
+
+model Driver {
+  id        String    @id @default(cuid())
+  name      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  addresses Address[]
 }
 
 model MenuItem {

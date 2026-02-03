@@ -34,6 +34,9 @@ export async function GET(
             state: true,
             zipCode: true,
             deliveryNotes: true,
+            driverId: true,
+            stopNumber: true,
+            driver: { select: { id: true, name: true } },
           },
         },
         orders: {
@@ -119,6 +122,8 @@ export async function PATCH(
               state: addr.state,
               zipCode: addr.zipCode,
               deliveryNotes: addr.deliveryNotes || null,
+              driverId: addr.driverId || null,
+              stopNumber: addr.stopNumber != null ? Number(addr.stopNumber) : null,
             },
           });
         } else {
@@ -131,6 +136,8 @@ export async function PATCH(
               state: addr.state,
               zipCode: addr.zipCode,
               deliveryNotes: addr.deliveryNotes || null,
+              driverId: addr.driverId || null,
+              stopNumber: addr.stopNumber != null ? Number(addr.stopNumber) : null,
             },
           });
         }
@@ -155,6 +162,9 @@ export async function PATCH(
             state: true,
             zipCode: true,
             deliveryNotes: true,
+            driverId: true,
+            stopNumber: true,
+            driver: { select: { id: true, name: true } },
           },
         },
       },

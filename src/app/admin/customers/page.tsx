@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatPhoneNumber } from "@/lib/formatPhone";
 
 type Customer = {
   id: string;
@@ -161,7 +162,7 @@ export default function AdminCustomersPage() {
                       {c.email || "—"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {c.phone || "—"}
+                      {c.phone ? formatPhoneNumber(c.phone) : "—"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {c._count.orders}

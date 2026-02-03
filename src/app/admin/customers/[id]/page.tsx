@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { formatPhoneNumber } from "@/lib/formatPhone";
+
+type DriverOption = {
+  id: string;
+  name: string;
+};
 
 type Address = {
   id: string;
@@ -12,6 +18,9 @@ type Address = {
   state: string;
   zipCode: string;
   deliveryNotes: string | null;
+  driverId: string | null;
+  stopNumber: number | null;
+  driver: DriverOption | null;
 };
 
 type EditableAddress = {
@@ -22,6 +31,8 @@ type EditableAddress = {
   state: string;
   zipCode: string;
   deliveryNotes: string;
+  driverId: string;
+  stopNumber: string;
   _delete?: boolean;
 };
 
@@ -80,6 +91,14 @@ export default function AdminCustomerDetailPage() {
   const [editCredit, setEditCredit] = useState(false);
   const [editNotes, setEditNotes] = useState("");
   const [editAddresses, setEditAddresses] = useState<EditableAddress[]>([]);
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/drivers?activeOnly=true")
+      .then((r) => r.json())
+      .then((data) => setDrivers(data.map((d: DriverOption) => ({ id: d.id, name: d.name }))))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function fetchCustomer() {
@@ -98,7 +117,7 @@ export default function AdminCustomerDetailPage() {
         const data = await res.json();
         setCustomer(data);
         setEditEmail(data.email || "");
-        setEditPhone(data.phone || "");
+        setEditPhone(data.phone ? formatPhoneNumber(data.phone) : "");
         setEditCredit(data.isCreditAccount);
         setEditNotes(data.notes || "");
         setEditAddresses(
@@ -110,6 +129,8 @@ export default function AdminCustomerDetailPage() {
             state: a.state,
             zipCode: a.zipCode,
             deliveryNotes: a.deliveryNotes || "",
+            driverId: a.driverId || "",
+            stopNumber: a.stopNumber != null ? String(a.stopNumber) : "",
           }))
         );
       } catch (err) {
@@ -163,6 +184,8 @@ export default function AdminCustomerDetailPage() {
           state: a.state,
           zipCode: a.zipCode,
           deliveryNotes: a.deliveryNotes || "",
+          driverId: a.driverId || "",
+          stopNumber: a.stopNumber != null ? String(a.stopNumber) : "",
         }))
       );
     } catch (err) {
@@ -201,7 +224,9 @@ export default function AdminCustomerDetailPage() {
         edit.city !== orig.city ||
         edit.state !== orig.state ||
         edit.zipCode !== orig.zipCode ||
-        (edit.deliveryNotes || null) !== orig.deliveryNotes
+        (edit.deliveryNotes || null) !== orig.deliveryNotes ||
+        (edit.driverId || null) !== (orig.driverId || null) ||
+        (edit.stopNumber ? Number(edit.stopNumber) : null) !== orig.stopNumber
       );
     });
   })();
@@ -263,7 +288,7 @@ export default function AdminCustomerDetailPage() {
                 {customer.email || "No email"}
               </p>
               <p className="text-sm text-gray-600">
-                {customer.phone || "No phone"}
+                {customer.phone ? formatPhoneNumber(customer.phone) : "No phone"}
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Joined {new Date(customer.createdAt).toLocaleDateString()}
@@ -311,7 +336,7 @@ export default function AdminCustomerDetailPage() {
                 <input
                   type="text"
                   value={editPhone}
-                  onChange={(e) => setEditPhone(e.target.value)}
+                  onChange={(e) => setEditPhone(formatPhoneNumber(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
                   placeholder="Phone number..."
                 />
@@ -443,6 +468,33 @@ export default function AdminCustomerDetailPage() {
                             placeholder="Delivery notes (optional)"
                             className="w-full px-2 py-1.5 border border-gray-300 rounded text-gray-900 text-sm"
                           />
+                          <div className="grid grid-cols-2 gap-2">
+                            <select
+                              value={addr.driverId}
+                              onChange={(e) => {
+                                const next = [...editAddresses];
+                                next[realIdx] = { ...addr, driverId: e.target.value };
+                                setEditAddresses(next);
+                              }}
+                              className="px-2 py-1.5 border border-gray-300 rounded text-gray-900 text-sm"
+                            >
+                              <option value="">No driver</option>
+                              {drivers.map((d) => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              value={addr.stopNumber}
+                              onChange={(e) => {
+                                const next = [...editAddresses];
+                                next[realIdx] = { ...addr, stopNumber: e.target.value };
+                                setEditAddresses(next);
+                              }}
+                              placeholder="Stop #"
+                              className="px-2 py-1.5 border border-gray-300 rounded text-gray-900 text-sm"
+                            />
+                          </div>
                         </div>
                       );
                     })}
@@ -451,7 +503,7 @@ export default function AdminCustomerDetailPage() {
                     onClick={() =>
                       setEditAddresses([
                         ...editAddresses,
-                        { street: "", unit: "", city: "", state: "", zipCode: "", deliveryNotes: "" },
+                        { street: "", unit: "", city: "", state: "", zipCode: "", deliveryNotes: "", driverId: "", stopNumber: "" },
                       ])
                     }
                     className="text-sm text-blue-600 hover:text-blue-800"
