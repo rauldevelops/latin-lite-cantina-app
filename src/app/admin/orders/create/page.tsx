@@ -134,6 +134,7 @@ export default function AdminCreateOrderPage() {
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [selections, setSelections] = useState<OrderSelections>({});
   const [expandedCompletas, setExpandedCompletas] = useState<Set<string>>(new Set());
+  const [expandedExtras, setExpandedExtras] = useState<Record<number, { entrees: boolean; sides: boolean }>>({});
   const [menusLoading, setMenusLoading] = useState(false);
 
   // Step 3: Delivery & Payment
@@ -468,6 +469,17 @@ export default function AdminCreateOrderPage() {
 
   function isCompletaExpanded(dayOfWeek: number, completaIndex: number): boolean {
     return expandedCompletas.has(`${dayOfWeek}-${completaIndex}`);
+  }
+
+  function toggleExpandedExtras(dayOfWeek: number, type: "entrees" | "sides") {
+    setExpandedExtras((prev) => ({
+      ...prev,
+      [dayOfWeek]: {
+        entrees: prev[dayOfWeek]?.entrees || false,
+        sides: prev[dayOfWeek]?.sides || false,
+        [type]: !prev[dayOfWeek]?.[type],
+      },
+    }));
   }
 
   // ── Pricing ──
@@ -1028,9 +1040,19 @@ export default function AdminCreateOrderPage() {
                               ))}
 
                               {/* Extra Entrees */}
-                              {daySel.extraEntrees.length > 0 && (
+                              {(daySel.extraEntrees.length > 0 || expandedExtras[day.num]?.entrees) && (
                                 <div className="border border-blue-200 rounded-lg p-3 mb-3 bg-blue-50">
-                                  <p className="font-medium text-blue-800 mb-2">Extra Entrees</p>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <p className="font-medium text-blue-800">Extra Entrees</p>
+                                    {daySel.extraEntrees.length === 0 && (
+                                      <button
+                                        onClick={() => toggleExpandedExtras(day.num, "entrees")}
+                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                      >
+                                        Hide
+                                      </button>
+                                    )}
+                                  </div>
                                   {getEntreesForDay(day.num).map((item) => {
                                     const existing = daySel.extraEntrees.find((e) => e.item.id === item.id);
                                     const qty = existing?.quantity || 0;
@@ -1049,9 +1071,19 @@ export default function AdminCreateOrderPage() {
                               )}
 
                               {/* Extra Sides */}
-                              {daySel.extraSides.length > 0 && (
+                              {(daySel.extraSides.length > 0 || expandedExtras[day.num]?.sides) && (
                                 <div className="border border-orange-200 rounded-lg p-3 mb-3 bg-orange-50">
-                                  <p className="font-medium text-orange-800 mb-2">Extra Sides</p>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <p className="font-medium text-orange-800">Extra Sides</p>
+                                    {daySel.extraSides.length === 0 && (
+                                      <button
+                                        onClick={() => toggleExpandedExtras(day.num, "sides")}
+                                        className="text-xs text-orange-600 hover:text-orange-800"
+                                      >
+                                        Hide
+                                      </button>
+                                    )}
+                                  </div>
                                   {sides.map((sideItem) => {
                                     const existing = daySel.extraSides.find((s) => s.weeklyMenuItemId === sideItem.id);
                                     const qty = existing?.quantity || 0;
@@ -1071,17 +1103,17 @@ export default function AdminCreateOrderPage() {
 
                               {/* Add Extras */}
                               <div className="flex gap-2 mt-2">
-                                {daySel.extraEntrees.length === 0 && getEntreesForDay(day.num).length > 0 && (
+                                {daySel.extraEntrees.length === 0 && !expandedExtras[day.num]?.entrees && getEntreesForDay(day.num).length > 0 && (
                                   <button
-                                    onClick={() => updateExtraEntree(day.num, getEntreesForDay(day.num)[0], 1)}
+                                    onClick={() => toggleExpandedExtras(day.num, "entrees")}
                                     className="px-3 py-1 text-xs text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50"
                                   >
                                     + Extra Entrees
                                   </button>
                                 )}
-                                {daySel.extraSides.length === 0 && sides.length > 0 && (
+                                {daySel.extraSides.length === 0 && !expandedExtras[day.num]?.sides && sides.length > 0 && (
                                   <button
-                                    onClick={() => updateExtraSide(day.num, sides[0], 1)}
+                                    onClick={() => toggleExpandedExtras(day.num, "sides")}
                                     className="px-3 py-1 text-xs text-orange-600 border border-orange-300 rounded-md hover:bg-orange-50"
                                   >
                                     + Extra Sides

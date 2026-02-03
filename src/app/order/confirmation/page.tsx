@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -49,36 +49,135 @@ const DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 export default function OrderConfirmationPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("id");
+  const redirectStatus = searchParams.get("redirect_status");
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchOrder() {
-      if (!orderId) {
-        setError("No order ID provided");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/orders/${orderId}`);
-
-        if (!res.ok) {
-          throw new Error("Order not found");
-        }
-
-        const data = await res.json();
-        setOrder(data);
-      } catch (err) {
-        setError(`Failed to load order: ${err}`);
-      } finally {
-        setLoading(false);
-      }
+  const fetchOrder = useCallback(async () => {
+    if (!orderId) {
+      setError("No order ID provided");
+      setLoading(false);
+      return;
     }
 
-    fetchOrder();
+    try {
+      const res = await fetch(`/api/orders/${orderId}`);
+
+      if (!res.ok) {
+        throw new Error("Order not found");
+      }
+
+      const data = await res.json();
+      setOrder(data);
+    } catch (err) {
+      setError(`Failed to load order: ${err}`);
+    } finally {
+      setLoading(false);
+    }
   }, [orderId]);
+
+  useEffect(() => {
+    fetchOrder();
+
+    // If redirected from Stripe and payment succeeded, poll for updated status
+    // The webhook should update the order, but we poll to ensure UI updates
+    if (redirectStatus === "succeeded") {
+      const pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/orders/${orderId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setOrder(data);
+            // Stop polling once payment is confirmed
+            if (data.paymentStatus === "PAID") {
+              clearInterval(pollInterval);
+            }
+          }
+        } catch {
+          // Ignore polling errors
+        }
+      }, 2000); // Poll every 2 seconds
+
+      // Stop polling after 30 seconds
+      setTimeout(() => clearInterval(pollInterval), 30000);
+
+      return () => clearInterval(pollInterval);
+    }
+  }, [orderId, redirectStatus, fetchOrder]);
+
+  function getPaymentStatusDisplay() {
+    if (!order) return null;
+
+    // If we were redirected with succeeded status but order still shows PENDING,
+    // it means the webhook hasn't processed yet
+    if (redirectStatus === "succeeded" && order.paymentStatus === "PENDING") {
+      return {
+        text: "Processing payment...",
+        className: "text-blue-700 font-medium",
+      };
+    }
+
+    switch (order.paymentStatus) {
+      case "PAID":
+        return {
+          text: "Paid",
+          className: "text-green-700 font-medium",
+        };
+      case "FAILED":
+        return {
+          text: "Payment failed",
+          className: "text-red-700 font-medium",
+        };
+      case "CREDIT_ACCOUNT":
+        return {
+          text: "Credit account",
+          className: "text-blue-700 font-medium",
+        };
+      case "PENDING":
+      default:
+        return {
+          text: "Payment pending",
+          className: "text-yellow-700 font-medium",
+        };
+    }
+  }
+
+  function getHeaderDisplay() {
+    if (!order) return { icon: "✓", title: "Order Confirmed!", color: "text-green-500" };
+
+    // Check for failed redirect status from Stripe
+    if (redirectStatus === "failed") {
+      return {
+        icon: "!",
+        title: "Payment Failed",
+        color: "text-red-500",
+      };
+    }
+
+    if (order.paymentStatus === "PAID") {
+      return {
+        icon: "✓",
+        title: "Order Confirmed!",
+        color: "text-green-500",
+      };
+    }
+
+    if (order.paymentStatus === "FAILED") {
+      return {
+        icon: "!",
+        title: "Payment Failed",
+        color: "text-red-500",
+      };
+    }
+
+    // Pending or processing
+    return {
+      icon: "✓",
+      title: "Order Received!",
+      color: "text-green-500",
+    };
+  }
 
   if (loading) {
     return (
@@ -94,24 +193,42 @@ export default function OrderConfirmationPage() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">{error || "Order not found"}</p>
           <Link href="/order" className="text-blue-600 hover:text-blue-800">
-            ← Back to Order
+            &larr; Back to Order
           </Link>
         </div>
       </div>
     );
   }
 
+  const paymentStatus = getPaymentStatusDisplay();
+  const headerDisplay = getHeaderDisplay();
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <div className="text-green-500 text-6xl mb-4">✓</div>
+          <div className={`text-6xl mb-4 ${headerDisplay.color}`}>
+            {headerDisplay.icon}
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Order Confirmed!
+            {headerDisplay.title}
           </h1>
           <p className="text-gray-600 mb-6">
-            Thank you for your order. We&apos;ll have your meals ready!
+            {order.paymentStatus === "PAID" || redirectStatus === "succeeded"
+              ? "Thank you for your order. We'll have your meals ready!"
+              : order.paymentStatus === "FAILED" || redirectStatus === "failed"
+              ? "There was a problem with your payment. Please try again."
+              : "Thank you for your order. We'll have your meals ready!"}
           </p>
+
+          {(order.paymentStatus === "FAILED" || redirectStatus === "failed") && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-red-800 text-sm">
+                Your order has been saved but payment was not completed.
+                Please contact us or try placing a new order.
+              </p>
+            </div>
+          )}
 
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-500">Order Number</p>
@@ -141,9 +258,15 @@ export default function OrderConfirmationPage() {
           <div className="text-left border-t pt-6 mb-6">
             <h2 className="font-semibold text-gray-900 mb-2">Payment</h2>
             <p className="text-sm text-gray-600">
-              {order.paymentMethod === "CARD" ? "Credit / Debit Card" : order.paymentMethod || "N/A"}
+              {order.paymentMethod === "CARD"
+                ? "Credit / Debit Card"
+                : order.paymentMethod === "CREDIT_ACCOUNT"
+                ? "Credit Account"
+                : order.paymentMethod || "N/A"}
               {" — "}
-              <span className="text-yellow-700 font-medium">Payment pending</span>
+              <span className={paymentStatus?.className}>
+                {paymentStatus?.text}
+              </span>
             </p>
           </div>
 
@@ -159,7 +282,10 @@ export default function OrderConfirmationPage() {
                   </p>
                   <ul className="text-sm text-gray-600 mt-1">
                     {day.orderItems.map((item) => (
-                      <li key={item.id}>• {item.quantity > 1 ? `${item.quantity}x ` : ""}{item.menuItem.name}</li>
+                      <li key={item.id}>
+                        &bull; {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                        {item.menuItem.name}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -172,7 +298,9 @@ export default function OrderConfirmationPage() {
               </div>
               <div className="flex justify-between">
                 <span>Delivery Fee</span>
-                <span>{order.isPickup ? "FREE" : `$${Number(order.deliveryFee).toFixed(2)}`}</span>
+                <span>
+                  {order.isPickup ? "FREE" : `$${Number(order.deliveryFee).toFixed(2)}`}
+                </span>
               </div>
               <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
                 <span>Total</span>

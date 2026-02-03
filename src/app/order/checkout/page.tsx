@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import StripeProvider from "@/components/StripeProvider";
+import PaymentForm from "@/components/PaymentForm";
 
 type Address = {
   id: string;
@@ -56,6 +58,11 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [addressLoading, setAddressLoading] = useState(true);
+
+  // Payment step state
+  const [paymentStep, setPaymentStep] = useState<"details" | "payment">("details");
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
   // New address form state
   const [newAddress, setNewAddress] = useState({
@@ -150,7 +157,7 @@ export default function CheckoutPage() {
     }
   }
 
-  async function handlePlaceOrder() {
+  async function handleProceedToPayment() {
     if (!orderData) return;
 
     // Validate address for delivery
@@ -163,7 +170,8 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/orders", {
+      // Step 1: Create the order with PENDING payment status
+      const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -174,19 +182,43 @@ export default function CheckoutPage() {
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to place order");
+      if (!orderRes.ok) {
+        const data = await orderRes.json();
+        throw new Error(data.error || "Failed to create order");
       }
 
-      const order = await res.json();
-      sessionStorage.removeItem("checkoutOrderData");
-      router.push(`/order/confirmation?id=${order.id}`);
+      const order = await orderRes.json();
+      setOrderId(order.id);
+
+      // Step 2: Create PaymentIntent for the order
+      const paymentRes = await fetch("/api/stripe/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      if (!paymentRes.ok) {
+        const data = await paymentRes.json();
+        throw new Error(data.error || "Failed to initialize payment");
+      }
+
+      const { clientSecret: secret } = await paymentRes.json();
+      setClientSecret(secret);
+      setPaymentStep("payment");
     } catch (err) {
-      setError(`Failed to place order: ${err}`);
+      setError(`${err}`);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handlePaymentSuccess() {
+    sessionStorage.removeItem("checkoutOrderData");
+    router.push(`/order/confirmation?id=${orderId}`);
+  }
+
+  function handlePaymentError(message: string) {
+    setError(message);
   }
 
   if (!orderData || !pricing) {
@@ -203,10 +235,21 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <Link href="/order" className="text-blue-600 hover:text-blue-800 text-sm">
-            ← Back to Order Builder
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">Checkout</h1>
+          {paymentStep === "details" ? (
+            <Link href="/order" className="text-blue-600 hover:text-blue-800 text-sm">
+              &larr; Back to Order Builder
+            </Link>
+          ) : (
+            <button
+              onClick={() => setPaymentStep("details")}
+              className="text-blue-600 hover:text-blue-800 text-sm"
+            >
+              &larr; Back to Order Details
+            </button>
+          )}
+          <h1 className="text-3xl font-bold text-gray-900 mt-2">
+            {paymentStep === "details" ? "Checkout" : "Payment"}
+          </h1>
         </div>
 
         {error && (
@@ -214,191 +257,210 @@ export default function CheckoutPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Delivery & Payment */}
+          {/* Left: Delivery/Payment */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Delivery vs Pickup */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Delivery Method
-              </h2>
-              <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 mb-4">
-                <button
-                  onClick={() => setIsPickup(false)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    !isPickup
-                      ? "bg-green-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  Delivery
-                </button>
-                <button
-                  onClick={() => setIsPickup(true)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isPickup
-                      ? "bg-green-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  Pickup
-                </button>
-              </div>
+            {paymentStep === "details" ? (
+              <>
+                {/* Delivery vs Pickup */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Delivery Method
+                  </h2>
+                  <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 mb-4">
+                    <button
+                      onClick={() => setIsPickup(false)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        !isPickup
+                          ? "bg-green-600 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      Delivery
+                    </button>
+                    <button
+                      onClick={() => setIsPickup(true)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isPickup
+                          ? "bg-green-600 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      Pickup
+                    </button>
+                  </div>
 
-              {isPickup ? (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-gray-700 font-medium">Pickup Location</p>
-                  <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
-                  <p className="text-green-600 text-sm mt-2 font-medium">No delivery fee</p>
-                </div>
-              ) : (
-                <div>
-                  {addressLoading ? (
-                    <p className="text-gray-500 text-sm">Loading addresses...</p>
+                  {isPickup ? (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-gray-700 font-medium">Pickup Location</p>
+                      <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
+                      <p className="text-green-600 text-sm mt-2 font-medium">No delivery fee</p>
+                    </div>
                   ) : (
-                    <>
-                      {/* Saved Addresses */}
-                      {addresses.length > 0 && (
-                        <div className="space-y-2 mb-4">
-                          {addresses.map((addr) => (
-                            <label
-                              key={addr.id}
-                              className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
-                                selectedAddressId === addr.id
-                                  ? "border-green-500 bg-green-50"
-                                  : "border-gray-200 hover:border-gray-300"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                name="address"
-                                checked={selectedAddressId === addr.id}
-                                onChange={() => setSelectedAddressId(addr.id)}
-                                className="mt-1"
-                              />
-                              <div>
-                                <p className="text-gray-900 text-sm">
-                                  {addr.street}
-                                  {addr.unit && `, ${addr.unit}`}
-                                </p>
-                                <p className="text-gray-600 text-sm">
-                                  {addr.city}, {addr.state} {addr.zipCode}
-                                </p>
-                                {addr.deliveryNotes && (
-                                  <p className="text-gray-500 text-xs mt-1">
-                                    Note: {addr.deliveryNotes}
-                                  </p>
-                                )}
-                                {addr.isDefault && (
-                                  <span className="text-xs text-green-600 font-medium">Default</span>
-                                )}
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Add New Address */}
-                      {!showAddressForm ? (
-                        <button
-                          onClick={() => setShowAddressForm(true)}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          + Add New Address
-                        </button>
+                    <div>
+                      {addressLoading ? (
+                        <p className="text-gray-500 text-sm">Loading addresses...</p>
                       ) : (
-                        <form onSubmit={handleSaveAddress} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                          <p className="font-medium text-gray-900 text-sm">New Address</p>
-                          <input
-                            type="text"
-                            placeholder="Street Address *"
-                            required
-                            value={newAddress.street}
-                            onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Apt / Unit (optional)"
-                            value={newAddress.unit}
-                            onChange={(e) => setNewAddress({ ...newAddress, unit: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                          />
-                          <div className="grid grid-cols-3 gap-2">
-                            <input
-                              type="text"
-                              placeholder="City *"
-                              required
-                              value={newAddress.city}
-                              onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                            />
-                            <input
-                              type="text"
-                              placeholder="State *"
-                              required
-                              value={newAddress.state}
-                              onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                            />
-                            <input
-                              type="text"
-                              placeholder="ZIP *"
-                              required
-                              value={newAddress.zipCode}
-                              onChange={(e) => setNewAddress({ ...newAddress, zipCode: e.target.value })}
-                              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                            />
-                          </div>
-                          <input
-                            type="text"
-                            placeholder="Delivery Notes (optional)"
-                            value={newAddress.deliveryNotes}
-                            onChange={(e) => setNewAddress({ ...newAddress, deliveryNotes: e.target.value })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                          />
-                          <label className="flex items-center gap-2 text-sm text-gray-700">
-                            <input
-                              type="checkbox"
-                              checked={newAddress.isDefault}
-                              onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
-                            />
-                            Set as default address
-                          </label>
-                          <div className="flex gap-2">
+                        <>
+                          {/* Saved Addresses */}
+                          {addresses.length > 0 && (
+                            <div className="space-y-2 mb-4">
+                              {addresses.map((addr) => (
+                                <label
+                                  key={addr.id}
+                                  className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
+                                    selectedAddressId === addr.id
+                                      ? "border-green-500 bg-green-50"
+                                      : "border-gray-200 hover:border-gray-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="address"
+                                    checked={selectedAddressId === addr.id}
+                                    onChange={() => setSelectedAddressId(addr.id)}
+                                    className="mt-1"
+                                  />
+                                  <div>
+                                    <p className="text-gray-900 text-sm">
+                                      {addr.street}
+                                      {addr.unit && `, ${addr.unit}`}
+                                    </p>
+                                    <p className="text-gray-600 text-sm">
+                                      {addr.city}, {addr.state} {addr.zipCode}
+                                    </p>
+                                    {addr.deliveryNotes && (
+                                      <p className="text-gray-500 text-xs mt-1">
+                                        Note: {addr.deliveryNotes}
+                                      </p>
+                                    )}
+                                    {addr.isDefault && (
+                                      <span className="text-xs text-green-600 font-medium">Default</span>
+                                    )}
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add New Address */}
+                          {!showAddressForm ? (
                             <button
-                              type="submit"
-                              disabled={savingAddress}
-                              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                              onClick={() => setShowAddressForm(true)}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                             >
-                              {savingAddress ? "Saving..." : "Save Address"}
+                              + Add New Address
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => setShowAddressForm(false)}
-                              className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
+                          ) : (
+                            <form onSubmit={handleSaveAddress} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                              <p className="font-medium text-gray-900 text-sm">New Address</p>
+                              <input
+                                type="text"
+                                placeholder="Street Address *"
+                                required
+                                value={newAddress.street}
+                                onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Apt / Unit (optional)"
+                                value={newAddress.unit}
+                                onChange={(e) => setNewAddress({ ...newAddress, unit: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                              />
+                              <div className="grid grid-cols-3 gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="City *"
+                                  required
+                                  value={newAddress.city}
+                                  onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="State *"
+                                  required
+                                  value={newAddress.state}
+                                  onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="ZIP *"
+                                  required
+                                  value={newAddress.zipCode}
+                                  onChange={(e) => setNewAddress({ ...newAddress, zipCode: e.target.value })}
+                                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                                />
+                              </div>
+                              <input
+                                type="text"
+                                placeholder="Delivery Notes (optional)"
+                                value={newAddress.deliveryNotes}
+                                onChange={(e) => setNewAddress({ ...newAddress, deliveryNotes: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                              />
+                              <label className="flex items-center gap-2 text-sm text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={newAddress.isDefault}
+                                  onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
+                                />
+                                Set as default address
+                              </label>
+                              <div className="flex gap-2">
+                                <button
+                                  type="submit"
+                                  disabled={savingAddress}
+                                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                  {savingAddress ? "Saving..." : "Save Address"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAddressForm(false)}
+                                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          )}
+                        </>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Payment */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment</h2>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-yellow-800 text-sm font-medium">Credit / Debit Card</p>
-                <p className="text-yellow-700 text-sm mt-1">
-                  Card payment will be available soon. For now, your order will be
-                  submitted and payment collected upon delivery.
-                </p>
+                {/* Payment Info */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment</h2>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-blue-800 text-sm font-medium">Credit / Debit Card</p>
+                    <p className="text-blue-700 text-sm mt-1">
+                      You&apos;ll enter your card details in the next step.
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Payment Step */
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Enter Payment Details
+                </h2>
+                {clientSecret && (
+                  <StripeProvider clientSecret={clientSecret}>
+                    <PaymentForm
+                      orderId={orderId!}
+                      onSuccess={handlePaymentSuccess}
+                      onError={handlePaymentError}
+                    />
+                  </StripeProvider>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right: Order Summary */}
@@ -451,13 +513,15 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handlePlaceOrder}
-                disabled={submitting || (!isPickup && !selectedAddressId)}
-                className="w-full mt-4 bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? "Placing Order..." : "Place Order"}
-              </button>
+              {paymentStep === "details" && (
+                <button
+                  onClick={handleProceedToPayment}
+                  disabled={submitting || (!isPickup && !selectedAddressId)}
+                  className="w-full mt-4 bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? "Processing..." : "Proceed to Payment"}
+                </button>
+              )}
             </div>
           </div>
         </div>
