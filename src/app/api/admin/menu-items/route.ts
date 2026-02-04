@@ -3,15 +3,21 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET all menu items
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth();
-    
+
     if (!session || session.user?.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const stapleOnly = searchParams.get("stapleOnly") === "true";
+
     const menuItems = await prisma.menuItem.findMany({
+      where: stapleOnly
+        ? { isStaple: true, isActive: true }
+        : undefined,
       orderBy: { name: "asc" },
     });
 
@@ -35,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { name, description, type, isDessert } = data;
+    const { name, description, type, isDessert, isStaple } = data;
 
     const menuItem = await prisma.menuItem.create({
       data: {
@@ -43,6 +49,7 @@ export async function POST(request: Request) {
         description,
         type,
         isDessert: isDessert || false,
+        isStaple: isStaple || false,
       },
     });
 

@@ -11,6 +11,7 @@ type MenuItem = {
   type: "ENTREE" | "SIDE";
   isActive: boolean;
   isDessert: boolean;
+  isStaple: boolean;
 };
 
 export default function EditMenuItemPage() {
@@ -60,6 +61,7 @@ export default function EditMenuItemPage() {
       description: formData.get("description") || null,
       type: formData.get("type"),
       isDessert: formData.get("isDessert") === "on",
+      isStaple: formData.get("isStaple") === "on",
     };
 
     try {
@@ -195,6 +197,22 @@ export default function EditMenuItemPage() {
               </label>
             </div>
           )}
+
+          <div className="flex items-center gap-2">
+            <input
+              id="isStaple"
+              name="isStaple"
+              type="checkbox"
+              defaultChecked={menuItem.isStaple}
+              className="h-4 w-4 rounded border-gray-300 text-green-600"
+            />
+            <label
+              htmlFor="isStaple"
+              className="text-sm font-medium text-gray-700"
+            >
+              Staple item? (always available, shown every day)
+            </label>
+          </div>
 
           <div className="flex gap-4 pt-4">
             <button

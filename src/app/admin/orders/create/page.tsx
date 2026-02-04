@@ -34,6 +34,8 @@ type MenuItem = {
   description: string | null;
   type: "ENTREE" | "SIDE";
   isDessert: boolean;
+  isSoup?: boolean;
+  isStaple?: boolean;
 };
 
 type WeeklyMenuItem = {
@@ -54,6 +56,7 @@ type SideSelection = {
   menuItemId: string;
   name: string;
   isDessert: boolean;
+  isSoup: boolean;
   quantity: number;
 };
 
@@ -106,6 +109,10 @@ function getDessertCount(sides: SideSelection[]): number {
   return sides.filter((s) => s.isDessert).reduce((sum, s) => sum + s.quantity, 0);
 }
 
+function getSoupCount(sides: SideSelection[]): number {
+  return sides.filter((s) => s.isSoup).reduce((sum, s) => sum + s.quantity, 0);
+}
+
 // ── Component ──
 
 function AdminCreateOrderContent() {
@@ -131,6 +138,7 @@ function AdminCreateOrderContent() {
 
   // Step 2: Order Builder
   const [menus, setMenus] = useState<WeeklyMenu[]>([]);
+  const [stapleItems, setStapleItems] = useState<MenuItem[]>([]);
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [selections, setSelections] = useState<OrderSelections>({});
   const [expandedCompletas, setExpandedCompletas] = useState<Set<string>>(new Set());
@@ -176,21 +184,32 @@ function AdminCreateOrderContent() {
     }
   }, [searchParams]);
 
-  // Fetch menus when entering step 2
+  // Fetch menus and staple items when entering step 2
   useEffect(() => {
     if (step === 2 && menus.length === 0) {
       setMenusLoading(true);
-      fetch("/api/admin/weekly-menus")
-        .then((res) => res.json())
-        .then(async (menuList: { id: string; weekStartDate: string; isPublished: boolean }[]) => {
-          const published = menuList.filter((m) => m.isPublished);
-          const detailed = await Promise.all(
-            published.map(async (m) => {
-              const res = await fetch(`/api/admin/weekly-menus/${m.id}`);
-              return res.json();
-            })
-          );
-          setMenus(detailed);
+      Promise.all([
+        // Fetch weekly menus
+        fetch("/api/admin/weekly-menus")
+          .then((res) => res.json())
+          .then(async (menuList: { id: string; weekStartDate: string; isPublished: boolean }[]) => {
+            const published = menuList.filter((m) => m.isPublished);
+            const detailed = await Promise.all(
+              published.map(async (m) => {
+                const res = await fetch(`/api/admin/weekly-menus/${m.id}`);
+                return res.json();
+              })
+            );
+            return detailed;
+          }),
+        // Fetch staple menu items
+        fetch("/api/admin/menu-items?stapleOnly=true")
+          .then((res) => res.json())
+          .catch(() => []),
+      ])
+        .then(([menuData, stapleData]) => {
+          setMenus(menuData);
+          setStapleItems(stapleData || []);
         })
         .catch(() => setError("Failed to load menus"))
         .finally(() => setMenusLoading(false));
@@ -322,15 +341,43 @@ function AdminCreateOrderContent() {
   function getEntreesForDay(dayOfWeek: number): WeeklyMenuItem[] {
     const menu = menus[selectedMenuIndex];
     if (!menu) return [];
-    return menu.menuItems.filter(
+
+    // Get day-specific entrees from the weekly menu
+    const dayEntrees = menu.menuItems.filter(
       (item) => item.dayOfWeek === dayOfWeek && item.menuItem.type === "ENTREE"
     );
+
+    // Create synthetic WeeklyMenuItem objects for staple entrees
+    const stapleEntrees: WeeklyMenuItem[] = stapleItems
+      .filter((item) => item.type === "ENTREE")
+      .map((item) => ({
+        id: `staple-${item.id}`,
+        dayOfWeek: dayOfWeek,
+        menuItem: item,
+      }));
+
+    // Combine: staples first (always available), then day-specific
+    return [...stapleEntrees, ...dayEntrees];
   }
 
   function getSides(): WeeklyMenuItem[] {
     const menu = menus[selectedMenuIndex];
     if (!menu) return [];
-    return menu.menuItems.filter((item) => item.dayOfWeek === 0);
+
+    // Get sides from the weekly menu (dayOfWeek = 0 means available all week)
+    const menuSides = menu.menuItems.filter((item) => item.dayOfWeek === 0);
+
+    // Create synthetic WeeklyMenuItem objects for staple sides
+    const stapleSides: WeeklyMenuItem[] = stapleItems
+      .filter((item) => item.type === "SIDE")
+      .map((item) => ({
+        id: `staple-${item.id}`,
+        dayOfWeek: 0,
+        menuItem: item,
+      }));
+
+    // Combine: staples first, then weekly menu sides
+    return [...stapleSides, ...menuSides];
   }
 
   function addCompleta(dayOfWeek: number) {
@@ -382,12 +429,14 @@ function AdminCreateOrderContent() {
           menuItemId: weeklyMenuItem.menuItem.id,
           name: weeklyMenuItem.menuItem.name,
           isDessert: weeklyMenuItem.menuItem.isDessert,
+          isSoup: weeklyMenuItem.menuItem.isSoup || false,
           quantity: 1,
         });
       }
 
       if (getTotalSideSlots(sides) > SIDES_PER_COMPLETA) return prev;
       if (getDessertCount(sides) > 1) return prev;
+      if (getSoupCount(sides) > 1) return prev;
 
       completa.sides = sides;
       completas[completaIndex] = completa;
@@ -437,6 +486,7 @@ function AdminCreateOrderContent() {
           menuItemId: weeklyMenuItem.menuItem.id,
           name: weeklyMenuItem.menuItem.name,
           isDessert: weeklyMenuItem.menuItem.isDessert,
+          isSoup: weeklyMenuItem.menuItem.isSoup || false,
           quantity: 1,
         });
       }
@@ -1004,13 +1054,16 @@ function AdminCreateOrderContent() {
                                             const qty = existing?.quantity || 0;
                                             const canAdd = getTotalSideSlots(completa.sides) < SIDES_PER_COMPLETA;
                                             const isDessert = sideItem.menuItem.isDessert;
+                                            const isSoup = sideItem.menuItem.isSoup;
                                             const dessertBlocked = isDessert && getDessertCount(completa.sides) >= 1 && qty === 0;
+                                            const soupBlocked = isSoup && getSoupCount(completa.sides) >= 1 && qty === 0;
 
                                             return (
                                               <div key={sideItem.id} className="flex items-center justify-between">
-                                                <span className={`text-sm ${isDessert ? "text-purple-700" : "text-gray-700"}`}>
+                                                <span className={`text-sm ${isDessert ? "text-purple-700" : isSoup ? "text-amber-700" : "text-gray-700"}`}>
                                                   {sideItem.menuItem.name}
                                                   {isDessert && <span className="text-xs ml-1">(dessert)</span>}
+                                                  {isSoup && <span className="text-xs ml-1">(soup)</span>}
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                   <button
@@ -1023,7 +1076,7 @@ function AdminCreateOrderContent() {
                                                   <span className="w-6 text-center text-base font-semibold text-gray-900">{qty}</span>
                                                   <button
                                                     onClick={() => updateCompletaSide(day.num, cIndex, sideItem, 1)}
-                                                    disabled={!canAdd || dessertBlocked}
+                                                    disabled={!canAdd || dessertBlocked || soupBlocked}
                                                     className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center"
                                                   >
                                                     +

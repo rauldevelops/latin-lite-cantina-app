@@ -21,6 +21,7 @@ export default function NewMenuItemPage() {
       description: formData.get("description") || null,
       type: formData.get("type"),
       isDessert: formData.get("isDessert") === "on",
+      isStaple: formData.get("isStaple") === "on",
     };
 
     try {
@@ -136,6 +137,23 @@ export default function NewMenuItemPage() {
                 className="text-sm font-medium text-gray-700"
               >
                 Dessert? (limits to 1 per completa)
+              </label>
+            </div>
+          )}
+
+          {itemType && (
+            <div className="flex items-center gap-2">
+              <input
+                id="isStaple"
+                name="isStaple"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300 text-green-600"
+              />
+              <label
+                htmlFor="isStaple"
+                className="text-sm font-medium text-gray-700"
+              >
+                Staple item? (always available, shown every day)
               </label>
             </div>
           )}

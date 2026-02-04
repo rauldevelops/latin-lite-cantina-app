@@ -10,6 +10,8 @@ type MenuItem = {
   type: "ENTREE" | "SIDE";
   price: number;
   isDessert: boolean;
+  isSoup: boolean;
+  isStaple: boolean;
 };
 
 type WeeklyMenuItem = {
@@ -30,6 +32,7 @@ type SideSelection = {
   menuItemId: string;
   name: string;
   isDessert: boolean;
+  isSoup: boolean;
   quantity: number;
 };
 
@@ -77,9 +80,14 @@ function getDessertCount(sides: SideSelection[]): number {
   return sides.filter((s) => s.isDessert).reduce((sum, s) => sum + s.quantity, 0);
 }
 
+function getSoupCount(sides: SideSelection[]): number {
+  return sides.filter((s) => s.isSoup).reduce((sum, s) => sum + s.quantity, 0);
+}
+
 export default function OrderPage() {
   const router = useRouter();
   const [menus, setMenus] = useState<WeeklyMenu[]>([]);
+  const [stapleItems, setStapleItems] = useState<MenuItem[]>([]);
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [selections, setSelections] = useState<OrderSelections>({});
   const [loading, setLoading] = useState(true);
@@ -109,12 +117,13 @@ export default function OrderPage() {
         if (!res.ok) throw new Error("Failed to fetch menus");
 
         const data = await res.json();
-        setMenus(data);
+        setMenus(data.weeklyMenus);
+        setStapleItems(data.stapleItems || []);
 
         const now = new Date();
         const currentDay = now.getDay();
-        if (currentDay >= 3 && data.length > 1) {
-          const firstMenuMonday = new Date(data[0].weekStartDate);
+        if (currentDay >= 3 && data.weeklyMenus.length > 1) {
+          const firstMenuMonday = new Date(data.weeklyMenus[0].weekStartDate);
           const currentMonday = getCurrentMonday();
           if (firstMenuMonday.getTime() === currentMonday.getTime()) {
             setSelectedMenuIndex(1);
@@ -161,15 +170,44 @@ export default function OrderPage() {
   function getEntreesForDay(dayOfWeek: number): WeeklyMenuItem[] {
     const menu = menus[selectedMenuIndex];
     if (!menu) return [];
-    return menu.menuItems.filter(
+
+    // Get day-specific entrees from the weekly menu
+    const dayEntrees = menu.menuItems.filter(
       (item) => item.dayOfWeek === dayOfWeek && item.menuItem.type === "ENTREE"
     );
+
+    // Create synthetic WeeklyMenuItem objects for staple entrees
+    // Use a stable ID format: staple-{menuItemId}
+    const stapleEntrees: WeeklyMenuItem[] = stapleItems
+      .filter((item) => item.type === "ENTREE")
+      .map((item) => ({
+        id: `staple-${item.id}`,
+        dayOfWeek: dayOfWeek,
+        menuItem: item,
+      }));
+
+    // Combine: staples first (always available), then day-specific
+    return [...stapleEntrees, ...dayEntrees];
   }
 
   function getSides(): WeeklyMenuItem[] {
     const menu = menus[selectedMenuIndex];
     if (!menu) return [];
-    return menu.menuItems.filter((item) => item.dayOfWeek === 0);
+
+    // Get sides from the weekly menu (dayOfWeek = 0 means available all week)
+    const menuSides = menu.menuItems.filter((item) => item.dayOfWeek === 0);
+
+    // Create synthetic WeeklyMenuItem objects for staple sides
+    const stapleSides: WeeklyMenuItem[] = stapleItems
+      .filter((item) => item.type === "SIDE")
+      .map((item) => ({
+        id: `staple-${item.id}`,
+        dayOfWeek: 0,
+        menuItem: item,
+      }));
+
+    // Combine: staples first, then weekly menu sides
+    return [...stapleSides, ...menuSides];
   }
 
   function getDaySelection(dayOfWeek: number): DaySelection {
@@ -245,6 +283,7 @@ export default function OrderPage() {
           menuItemId: weeklyMenuItem.menuItem.id,
           name: weeklyMenuItem.menuItem.name,
           isDessert: weeklyMenuItem.menuItem.isDessert,
+          isSoup: weeklyMenuItem.menuItem.isSoup,
           quantity: 1,
         });
       }
@@ -252,12 +291,16 @@ export default function OrderPage() {
       // Enforce limits
       const totalSlots = getTotalSideSlots(sides);
       const dessertCount = getDessertCount(sides);
+      const soupCount = getSoupCount(sides);
 
       if (totalSlots > SIDES_PER_COMPLETA) {
         return prev; // Don't allow exceeding 3 sides
       }
       if (dessertCount > 1) {
         return prev; // Don't allow more than 1 dessert
+      }
+      if (soupCount > 1) {
+        return prev; // Don't allow more than 1 soup
       }
 
       completa.sides = sides;
@@ -328,6 +371,7 @@ export default function OrderPage() {
           menuItemId: weeklyMenuItem.menuItem.id,
           name: weeklyMenuItem.menuItem.name,
           isDessert: weeklyMenuItem.menuItem.isDessert,
+          isSoup: weeklyMenuItem.menuItem.isSoup,
           quantity: 1,
         });
       }
@@ -633,6 +677,8 @@ export default function OrderPage() {
                                     className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm ${
                                       s.isDessert
                                         ? "bg-purple-100 text-purple-800"
+                                        : s.isSoup
+                                        ? "bg-amber-100 text-amber-800"
                                         : "bg-green-100 text-green-800"
                                     }`}
                                   >
@@ -695,8 +741,11 @@ export default function OrderPage() {
                                   const totalSlots = getTotalSideSlots(completa.sides);
                                   const canAdd = totalSlots < SIDES_PER_COMPLETA;
                                   const isDessert = sideItem.menuItem.isDessert;
+                                  const isSoup = sideItem.menuItem.isSoup;
                                   const dessertCount = getDessertCount(completa.sides);
+                                  const soupCount = getSoupCount(completa.sides);
                                   const dessertBlocked = isDessert && dessertCount >= 1 && qty === 0;
+                                  const soupBlocked = isSoup && soupCount >= 1 && qty === 0;
 
                                   return (
                                     <div
@@ -704,11 +753,14 @@ export default function OrderPage() {
                                       className="flex items-center justify-between"
                                     >
                                       <span className={`text-sm ${
-                                        isDessert ? "text-purple-700" : "text-gray-700"
+                                        isDessert ? "text-purple-700" : isSoup ? "text-amber-700" : "text-gray-700"
                                       }`}>
                                         {sideItem.menuItem.name}
                                         {isDessert && (
                                           <span className="text-xs ml-1">(dessert)</span>
+                                        )}
+                                        {isSoup && (
+                                          <span className="text-xs ml-1">(soup)</span>
                                         )}
                                       </span>
                                       <div className="flex items-center gap-2">
@@ -728,7 +780,7 @@ export default function OrderPage() {
                                           onClick={() =>
                                             updateCompletaSide(day.num, cIndex, sideItem, 1)
                                           }
-                                          disabled={!canAdd || dessertBlocked}
+                                          disabled={!canAdd || dessertBlocked || soupBlocked}
                                           className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center"
                                         >
                                           +

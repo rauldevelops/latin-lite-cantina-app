@@ -16,24 +16,33 @@ export async function GET() {
     const monday = getCurrentMonday();
 
     // Get all published menus from current week onwards
-    const weeklyMenus = await prisma.weeklyMenu.findMany({
-      where: {
-        isPublished: true,
-        weekStartDate: {
-          gte: monday,
-        },
-      },
-      include: {
-        menuItems: {
-          include: {
-            menuItem: true,
+    const [weeklyMenus, stapleItems] = await Promise.all([
+      prisma.weeklyMenu.findMany({
+        where: {
+          isPublished: true,
+          weekStartDate: {
+            gte: monday,
           },
         },
-      },
-      orderBy: {
-        weekStartDate: "asc",
-      },
-    });
+        include: {
+          menuItems: {
+            include: {
+              menuItem: true,
+            },
+          },
+        },
+        orderBy: {
+          weekStartDate: "asc",
+        },
+      }),
+      // Get staple menu items (always available regardless of weekly menu)
+      prisma.menuItem.findMany({
+        where: {
+          isStaple: true,
+          isActive: true,
+        },
+      }),
+    ]);
 
     if (weeklyMenus.length === 0) {
       return NextResponse.json(
@@ -42,7 +51,10 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(weeklyMenus);
+    return NextResponse.json({
+      weeklyMenus,
+      stapleItems,
+    });
   } catch (error) {
     console.error("Error fetching upcoming menus:", error);
     return NextResponse.json(
