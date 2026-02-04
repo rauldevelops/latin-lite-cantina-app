@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 type MenuItem = {
   id: string;
   name: string;
   description: string | null;
+  imageUrl: string | null;
   type: "ENTREE" | "SIDE";
-  price: number;
 };
 
 type WeeklyMenuItem = {
@@ -33,6 +34,7 @@ const DAYS = [
 
 export default function MenuPage() {
   const [menus, setMenus] = useState<WeeklyMenu[]>([]);
+  const [stapleItems, setStapleItems] = useState<MenuItem[]>([]);
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,14 +54,16 @@ export default function MenuPage() {
         }
 
         const data = await res.json();
-        setMenus(data);
+        const weeklyMenus = data.weeklyMenus || data;
+        setMenus(weeklyMenus);
+        setStapleItems(data.stapleItems || []);
 
         // Auto-select first available week (skip current week if fully disabled)
         const now = new Date();
         const currentDay = now.getDay();
         // If Wednesday (3) or later, and first menu is current week, select next
-        if (currentDay >= 3 && data.length > 1) {
-          const firstMenuMonday = new Date(data[0].weekStartDate);
+        if (currentDay >= 3 && weeklyMenus.length > 1) {
+          const firstMenuMonday = new Date(weeklyMenus[0].weekStartDate);
           const currentMonday = getCurrentMonday();
           if (firstMenuMonday.getTime() === currentMonday.getTime()) {
             setSelectedMenuIndex(1);
@@ -93,28 +97,21 @@ export default function MenuPage() {
   }
 
   function isDayDisabled(dayOfWeek: number, menuDate: string): boolean {
-    // Sides (dayOfWeek 0) follow the same rules as the week
     if (!isCurrentWeek(menuDate)) {
-      return false; // Future weeks are never disabled
+      return false;
     }
 
     const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const currentDay = now.getDay();
 
-    // Wednesday (3) or later: entire current week is disabled
     if (currentDay >= 3) {
       return true;
     }
 
-    // Monday (1) or Tuesday (2): disable days up to and including today
-    // currentDay 1 (Monday) -> disable day 1
-    // currentDay 2 (Tuesday) -> disable days 1 and 2
     if (currentDay >= 1 && currentDay <= 2) {
       return dayOfWeek <= currentDay;
     }
 
-    // Sunday (0) or Saturday (6): no days disabled for current week
-    // (though in practice, weekend viewers can still order for Mon-Fri)
     return false;
   }
 
@@ -123,7 +120,7 @@ export default function MenuPage() {
       return false;
     }
     const now = new Date();
-    return now.getDay() >= 3; // Wednesday or later
+    return now.getDay() >= 3;
   }
 
   function getEntreesForDay(dayOfWeek: number) {
@@ -140,10 +137,6 @@ export default function MenuPage() {
     return menu.menuItems.filter((item) => item.dayOfWeek === 0);
   }
 
-  function formatPrice(price: number): string {
-    return `$${Number(price).toFixed(2)}`;
-  }
-
   function formatWeekRange(dateString: string): string {
     const monday = new Date(dateString);
     const friday = new Date(monday);
@@ -156,11 +149,11 @@ export default function MenuPage() {
   function getWeekLabel(dateString: string): string {
     const menuMonday = new Date(dateString);
     const currentMonday = getCurrentMonday();
-    
+
     if (menuMonday.getTime() === currentMonday.getTime()) {
       return "This Week";
     }
-    
+
     const nextMonday = new Date(currentMonday);
     nextMonday.setDate(nextMonday.getDate() + 7);
     if (menuMonday.getTime() === nextMonday.getTime()) {
@@ -256,17 +249,68 @@ export default function MenuPage() {
           <h2 className="text-2xl font-semibold text-gray-900 mb-6">
             Daily Entrees
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Staples Card */}
+            {stapleItems.filter(item => item.type === "ENTREE").length > 0 && (
+              <div
+                className={`rounded-lg shadow ${
+                  weekDisabled ? "bg-gray-100 opacity-60" : "bg-green-50 border-2 border-green-200"
+                }`}
+              >
+                <h3 className={`font-semibold border-b p-4 ${
+                  weekDisabled ? "text-gray-400 border-gray-200" : "text-green-800 border-green-200"
+                }`}>
+                  Staples
+                  <span className={`block text-xs font-normal ${
+                    weekDisabled ? "text-gray-400" : "text-green-600"
+                  }`}>
+                    Available Daily
+                  </span>
+                </h3>
+                <div className="p-4 space-y-4">
+                  {stapleItems
+                    .filter(item => item.type === "ENTREE")
+                    .map((item) => (
+                      <div key={item.id}>
+                        {item.imageUrl && (
+                          <div className="relative w-full h-32 mb-2 rounded-lg overflow-hidden">
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.name}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 100vw, 16vw"
+                            />
+                          </div>
+                        )}
+                        <p className={`font-medium ${
+                          weekDisabled ? "text-gray-400" : "text-gray-900"
+                        }`}>
+                          {item.name}
+                        </p>
+                        {item.description && (
+                          <p className={`text-sm ${
+                            weekDisabled ? "text-gray-400" : "text-gray-500"
+                          }`}>
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {DAYS.map((day) => {
               const dayDisabled = isDayDisabled(day.num, selectedMenu.weekStartDate);
               return (
                 <div
                   key={day.num}
-                  className={`rounded-lg shadow p-4 ${
+                  className={`rounded-lg shadow ${
                     dayDisabled ? "bg-gray-100 opacity-60" : "bg-white"
                   }`}
                 >
-                  <h3 className={`font-semibold border-b pb-2 mb-3 ${
+                  <h3 className={`font-semibold border-b p-4 ${
                     dayDisabled ? "text-gray-400" : "text-gray-900"
                   }`}>
                     {day.name}
@@ -276,12 +320,23 @@ export default function MenuPage() {
                       </span>
                     )}
                   </h3>
-                  <div className="space-y-3">
+                  <div className="p-4 space-y-4">
                     {getEntreesForDay(day.num).length === 0 ? (
                       <p className="text-sm text-gray-400">No entrees</p>
                     ) : (
                       getEntreesForDay(day.num).map((item) => (
                         <div key={item.id}>
+                          {item.menuItem.imageUrl && (
+                            <div className="relative w-full h-32 mb-2 rounded-lg overflow-hidden">
+                              <Image
+                                src={item.menuItem.imageUrl}
+                                alt={item.menuItem.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 20vw"
+                              />
+                            </div>
+                          )}
                           <p className={`font-medium ${
                             dayDisabled ? "text-gray-400" : "text-gray-900"
                           }`}>
@@ -294,11 +349,6 @@ export default function MenuPage() {
                               {item.menuItem.description}
                             </p>
                           )}
-                          <p className={`text-sm font-semibold ${
-                            dayDisabled ? "text-gray-400" : "text-green-600"
-                          }`}>
-                            {formatPrice(item.menuItem.price)}
-                          </p>
                         </div>
                       ))
                     )}
@@ -324,27 +374,35 @@ export default function MenuPage() {
                 {getSides().map((item) => (
                   <div
                     key={item.id}
-                    className={`rounded p-3 ${
+                    className={`rounded-lg overflow-hidden ${
                       weekDisabled ? "bg-gray-200" : "bg-gray-50"
                     }`}
                   >
-                    <p className={`font-medium ${
-                      weekDisabled ? "text-gray-400" : "text-gray-900"
-                    }`}>
-                      {item.menuItem.name}
-                    </p>
-                    {item.menuItem.description && (
-                      <p className={`text-sm ${
-                        weekDisabled ? "text-gray-400" : "text-gray-500"
-                      }`}>
-                        {item.menuItem.description}
-                      </p>
+                    {item.menuItem.imageUrl && (
+                      <div className="relative w-full h-24">
+                        <Image
+                          src={item.menuItem.imageUrl}
+                          alt={item.menuItem.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 50vw, 25vw"
+                        />
+                      </div>
                     )}
-                    <p className={`text-sm font-semibold ${
-                      weekDisabled ? "text-gray-400" : "text-green-600"
-                    }`}>
-                      {formatPrice(item.menuItem.price)}
-                    </p>
+                    <div className="p-3">
+                      <p className={`font-medium ${
+                        weekDisabled ? "text-gray-400" : "text-gray-900"
+                      }`}>
+                        {item.menuItem.name}
+                      </p>
+                      {item.menuItem.description && (
+                        <p className={`text-sm ${
+                          weekDisabled ? "text-gray-400" : "text-gray-500"
+                        }`}>
+                          {item.menuItem.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

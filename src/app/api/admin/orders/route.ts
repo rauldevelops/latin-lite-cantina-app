@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
       paymentMethod,
       paymentStatus,
       notes,
+      stripePaymentIntentId,
     } = await request.json();
 
     if (!customerId || !weeklyMenuId || !orderDays || orderDays.length === 0) {
@@ -235,6 +236,7 @@ export async function POST(request: NextRequest) {
         totalAmount,
         notes: notes || null,
         createdById: session.user.id,
+        stripePaymentIntentId: stripePaymentIntentId || null,
         orderDays: {
           create: typedOrderDays.map((day) => {
             const orderItems: {

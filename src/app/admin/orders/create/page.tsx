@@ -4,6 +4,12 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatPhoneNumber } from "@/lib/formatPhone";
+import StripeProvider from "@/components/StripeProvider";
+import {
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
 // ── Types ──
 
@@ -113,6 +119,72 @@ function getSoupCount(sides: SideSelection[]): number {
   return sides.filter((s) => s.isSoup).reduce((sum, s) => sum + s.quantity, 0);
 }
 
+// ── Card Payment Form Component ──
+
+type CardPaymentFormProps = {
+  onPaymentSuccess: (paymentIntentId: string) => void;
+  onPaymentError: (message: string) => void;
+  isProcessing: boolean;
+  setIsProcessing: (value: boolean) => void;
+};
+
+function CardPaymentForm({
+  onPaymentSuccess,
+  onPaymentError,
+  isProcessing,
+  setIsProcessing,
+}: CardPaymentFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [message, setMessage] = useState("");
+
+  async function handlePayment() {
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+    setMessage("");
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: window.location.href,
+      },
+      redirect: "if_required",
+    });
+
+    if (error) {
+      const errorMessage = error.message || "Payment failed";
+      setMessage(errorMessage);
+      onPaymentError(errorMessage);
+      setIsProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      setIsProcessing(false);
+      onPaymentSuccess(paymentIntent.id);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <PaymentElement />
+      {message && (
+        <div className="bg-red-100 text-red-700 p-3 rounded text-sm">
+          {message}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={handlePayment}
+        disabled={!stripe || isProcessing}
+        className="w-full bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isProcessing ? "Processing Payment..." : "Process Card Payment"}
+      </button>
+    </div>
+  );
+}
+
 // ── Component ──
 
 function AdminCreateOrderContent() {
@@ -154,6 +226,12 @@ function AdminCreateOrderContent() {
 
   // Step 3: Pricing
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
+
+  // Card payment state
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [cardPaymentReady, setCardPaymentReady] = useState(false);
+  const [creatingPaymentIntent, setCreatingPaymentIntent] = useState(false);
 
   // Pre-select customer from query param
   useEffect(() => {
@@ -588,6 +666,50 @@ function AdminCreateOrderContent() {
     return true;
   }
 
+  async function createPaymentIntent() {
+    if (!selectedCustomer || !pricing) return;
+
+    setCreatingPaymentIntent(true);
+    setError("");
+
+    try {
+      const totals = calculateTotals();
+      const res = await fetch("/api/admin/stripe/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: totals.total,
+          customerEmail: selectedCustomer.email,
+          description: `Latin Lite Cantina - Admin Order for ${selectedCustomer.firstName} ${selectedCustomer.lastName}`,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to initialize payment");
+      }
+
+      const { clientSecret: secret, paymentIntentId: piId } = await res.json();
+      setClientSecret(secret);
+      setPaymentIntentId(piId);
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setCreatingPaymentIntent(false);
+    }
+  }
+
+  function handleCardPaymentSuccess(piId: string) {
+    setPaymentIntentId(piId);
+    setCardPaymentReady(true);
+    setPaymentStatus("PAID");
+  }
+
+  function handleCardPaymentError(message: string) {
+    setError(message);
+    setCardPaymentReady(false);
+  }
+
   async function handleSubmit() {
     if (!selectedCustomer) return;
     setSubmitting(true);
@@ -616,6 +738,13 @@ function AdminCreateOrderContent() {
     });
 
     try {
+      // For card payments, ensure payment was processed
+      if (paymentMethod === "CARD" && !cardPaymentReady) {
+        setError("Please process the card payment first.");
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch("/api/admin/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -626,8 +755,9 @@ function AdminCreateOrderContent() {
           isPickup,
           addressId: isPickup ? null : selectedAddressId,
           paymentMethod,
-          paymentStatus,
+          paymentStatus: paymentMethod === "CARD" && cardPaymentReady ? "PAID" : paymentStatus,
           notes: orderNotes || null,
+          stripePaymentIntentId: paymentMethod === "CARD" && cardPaymentReady ? paymentIntentId : null,
         }),
       });
 
@@ -1007,7 +1137,11 @@ function AdminCreateOrderContent() {
                                         <span
                                           key={s.weeklyMenuItemId}
                                           className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm ${
-                                            s.isDessert ? "bg-purple-100 text-purple-800" : "bg-green-100 text-green-800"
+                                            s.isDessert
+                                              ? "bg-purple-100 text-purple-800"
+                                              : s.isSoup
+                                              ? "bg-amber-100 text-amber-800"
+                                              : "bg-green-100 text-green-800"
                                           }`}
                                         >
                                           {s.quantity > 1 && `${s.quantity}x `}{s.name}
@@ -1312,6 +1446,12 @@ function AdminCreateOrderContent() {
                       setPaymentMethod(method);
                       if (method === "CREDIT_ACCOUNT") {
                         setPaymentStatus("CREDIT_ACCOUNT");
+                      } else if (method === "CARD") {
+                        setPaymentStatus("PENDING");
+                        // Reset card payment state
+                        setClientSecret(null);
+                        setPaymentIntentId(null);
+                        setCardPaymentReady(false);
                       } else {
                         setPaymentStatus("PENDING");
                       }
@@ -1320,11 +1460,48 @@ function AdminCreateOrderContent() {
                   >
                     <option value="CASH">Cash</option>
                     <option value="CHECK">Check</option>
-                    <option value="CARD">Card</option>
+                    <option value="CARD">Card (Process Now)</option>
                     <option value="CREDIT_ACCOUNT">Credit Account</option>
                   </select>
                 </div>
-                {paymentMethod !== "CREDIT_ACCOUNT" && (
+
+                {/* Card Payment Section */}
+                {paymentMethod === "CARD" && (
+                  <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+                    <h3 className="font-medium text-blue-900 mb-3">Card Payment</h3>
+                    {cardPaymentReady ? (
+                      <div className="bg-green-100 text-green-800 p-3 rounded-md">
+                        <p className="font-medium">Payment processed successfully!</p>
+                        <p className="text-sm mt-1">Card will be charged when you place the order.</p>
+                      </div>
+                    ) : !clientSecret ? (
+                      <div>
+                        <p className="text-sm text-blue-800 mb-3">
+                          Click below to enter the customer&apos;s card information.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={createPaymentIntent}
+                          disabled={creatingPaymentIntent || !pricing}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                        >
+                          {creatingPaymentIntent ? "Initializing..." : `Enter Card for $${totals.total.toFixed(2)}`}
+                        </button>
+                      </div>
+                    ) : (
+                      <StripeProvider clientSecret={clientSecret}>
+                        <CardPaymentForm
+                          onPaymentSuccess={handleCardPaymentSuccess}
+                          onPaymentError={handleCardPaymentError}
+                          isProcessing={submitting}
+                          setIsProcessing={setSubmitting}
+                        />
+                      </StripeProvider>
+                    )}
+                  </div>
+                )}
+
+                {paymentMethod !== "CREDIT_ACCOUNT" && paymentMethod !== "CARD" && (
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">Payment Status</label>
                     <select

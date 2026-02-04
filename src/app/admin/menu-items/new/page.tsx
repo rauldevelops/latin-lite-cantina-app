@@ -19,8 +19,10 @@ export default function NewMenuItemPage() {
     const data = {
       name: formData.get("name"),
       description: formData.get("description") || null,
+      imageUrl: formData.get("imageUrl") || null,
       type: formData.get("type"),
       isDessert: formData.get("isDessert") === "on",
+      isSoup: formData.get("isSoup") === "on",
       isStaple: formData.get("isStaple") === "on",
     };
 
@@ -105,6 +107,25 @@ export default function NewMenuItemPage() {
 
           <div>
             <label
+              htmlFor="imageUrl"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Image URL
+            </label>
+            <input
+              id="imageUrl"
+              name="imageUrl"
+              type="url"
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+              placeholder="https://example.com/image.jpg"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Enter a URL for the menu item image
+            </p>
+          </div>
+
+          <div>
+            <label
               htmlFor="type"
               className="block text-sm font-medium text-gray-700"
             >
@@ -125,20 +146,37 @@ export default function NewMenuItemPage() {
           </div>
 
           {itemType === "SIDE" && (
-            <div className="flex items-center gap-2">
-              <input
-                id="isDessert"
-                name="isDessert"
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-blue-600"
-              />
-              <label
-                htmlFor="isDessert"
-                className="text-sm font-medium text-gray-700"
-              >
-                Dessert? (limits to 1 per completa)
-              </label>
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <input
+                  id="isDessert"
+                  name="isDessert"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-purple-600"
+                />
+                <label
+                  htmlFor="isDessert"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Dessert? (limits to 1 per completa)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id="isSoup"
+                  name="isSoup"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-amber-600"
+                />
+                <label
+                  htmlFor="isSoup"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Soup? (limits to 1 per completa)
+                </label>
+              </div>
+            </>
           )}
 
           {itemType && (

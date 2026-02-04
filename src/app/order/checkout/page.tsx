@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import StripeProvider from "@/components/StripeProvider";
@@ -55,14 +55,15 @@ export default function CheckoutPage() {
   const [isPickup, setIsPickup] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [addressLoading, setAddressLoading] = useState(true);
 
-  // Payment step state
-  const [paymentStep, setPaymentStep] = useState<"details" | "payment">("details");
+  // Order and payment state
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderCreating, setOrderCreating] = useState(false);
+  const [orderUpdating, setOrderUpdating] = useState(false);
+  const orderCreatedRef = useRef(false);
 
   // New address form state
   const [newAddress, setNewAddress] = useState({
@@ -76,8 +77,8 @@ export default function CheckoutPage() {
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
+  // Load initial data
   useEffect(() => {
-    // Load order data from sessionStorage
     const stored = sessionStorage.getItem("checkoutOrderData");
     if (!stored) {
       router.push("/order");
@@ -85,7 +86,6 @@ export default function CheckoutPage() {
     }
     setOrderData(JSON.parse(stored));
 
-    // Fetch pricing and addresses in parallel
     Promise.all([
       fetch("/api/pricing").then((r) => r.json()),
       fetch("/api/addresses").then((r) => r.json()),
@@ -93,13 +93,118 @@ export default function CheckoutPage() {
       .then(([pricingData, addressData]) => {
         setPricing(pricingData);
         setAddresses(addressData);
-        // Pre-select default address
         const defaultAddr = addressData.find((a: Address) => a.isDefault);
         if (defaultAddr) setSelectedAddressId(defaultAddr.id);
       })
       .catch((err) => setError(`Failed to load checkout data: ${err}`))
       .finally(() => setAddressLoading(false));
   }, [router]);
+
+  // Create order once data is loaded
+  const createOrder = useCallback(async () => {
+    if (!orderData || orderCreatedRef.current || orderCreating) return;
+
+    // For delivery, need an address selected
+    if (!isPickup && !selectedAddressId && addresses.length > 0) {
+      // Wait for address selection
+      return;
+    }
+
+    // For delivery with no addresses, user needs to add one first
+    if (!isPickup && addresses.length === 0) {
+      return;
+    }
+
+    orderCreatedRef.current = true;
+    setOrderCreating(true);
+    setError("");
+
+    try {
+      // Create the order
+      const orderRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weeklyMenuId: orderData.weeklyMenuId,
+          orderDays: orderData.orderDays,
+          isPickup,
+          addressId: isPickup ? null : selectedAddressId,
+        }),
+      });
+
+      if (!orderRes.ok) {
+        const data = await orderRes.json();
+        throw new Error(data.error || "Failed to create order");
+      }
+
+      const order = await orderRes.json();
+      setOrderId(order.id);
+
+      // Create PaymentIntent
+      const paymentRes = await fetch("/api/stripe/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      if (!paymentRes.ok) {
+        const data = await paymentRes.json();
+        throw new Error(data.error || "Failed to initialize payment");
+      }
+
+      const { clientSecret: secret } = await paymentRes.json();
+      setClientSecret(secret);
+    } catch (err) {
+      orderCreatedRef.current = false;
+      setError(`${err}`);
+    } finally {
+      setOrderCreating(false);
+    }
+  }, [orderData, isPickup, selectedAddressId, addresses.length, orderCreating]);
+
+  // Auto-create order when ready
+  useEffect(() => {
+    if (!addressLoading && orderData && pricing && !orderCreatedRef.current) {
+      // For pickup, create immediately
+      // For delivery, wait for address
+      if (isPickup || selectedAddressId) {
+        createOrder();
+      }
+    }
+  }, [addressLoading, orderData, pricing, isPickup, selectedAddressId, createOrder]);
+
+  // Update order when delivery options change (after order is created)
+  useEffect(() => {
+    if (!orderId || orderUpdating) return;
+
+    async function updateOrder() {
+      setOrderUpdating(true);
+      setError("");
+
+      try {
+        const res = await fetch(`/api/orders/${orderId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            isPickup,
+            addressId: isPickup ? null : selectedAddressId,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to update order");
+        }
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setOrderUpdating(false);
+      }
+    }
+
+    updateOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPickup, selectedAddressId]);
 
   function calculateTotals() {
     if (!orderData || !pricing) return { subtotal: 0, deliveryFee: 0, total: 0, totalMeals: 0 };
@@ -141,7 +246,6 @@ export default function CheckoutPage() {
 
       const saved = await res.json();
       setAddresses((prev) => {
-        // If new address is default, clear default on others
         if (saved.isDefault) {
           return [...prev.map((a) => ({ ...a, isDefault: false })), saved];
         }
@@ -154,61 +258,6 @@ export default function CheckoutPage() {
       setError(`Failed to save address: ${err}`);
     } finally {
       setSavingAddress(false);
-    }
-  }
-
-  async function handleProceedToPayment() {
-    if (!orderData) return;
-
-    // Validate address for delivery
-    if (!isPickup && !selectedAddressId) {
-      setError("Please select a delivery address.");
-      return;
-    }
-
-    setSubmitting(true);
-    setError("");
-
-    try {
-      // Step 1: Create the order with PENDING payment status
-      const orderRes = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weeklyMenuId: orderData.weeklyMenuId,
-          orderDays: orderData.orderDays,
-          isPickup,
-          addressId: isPickup ? null : selectedAddressId,
-        }),
-      });
-
-      if (!orderRes.ok) {
-        const data = await orderRes.json();
-        throw new Error(data.error || "Failed to create order");
-      }
-
-      const order = await orderRes.json();
-      setOrderId(order.id);
-
-      // Step 2: Create PaymentIntent for the order
-      const paymentRes = await fetch("/api/stripe/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
-      });
-
-      if (!paymentRes.ok) {
-        const data = await paymentRes.json();
-        throw new Error(data.error || "Failed to initialize payment");
-      }
-
-      const { clientSecret: secret } = await paymentRes.json();
-      setClientSecret(secret);
-      setPaymentStep("payment");
-    } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -230,26 +279,17 @@ export default function CheckoutPage() {
   }
 
   const { subtotal, deliveryFee, total } = calculateTotals();
+  const canShowPayment = clientSecret && orderId;
+  const needsAddress = !isPickup && !selectedAddressId && addresses.length === 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          {paymentStep === "details" ? (
-            <Link href="/order" className="text-blue-600 hover:text-blue-800 text-sm">
-              &larr; Back to Order Builder
-            </Link>
-          ) : (
-            <button
-              onClick={() => setPaymentStep("details")}
-              className="text-blue-600 hover:text-blue-800 text-sm"
-            >
-              &larr; Back to Order Details
-            </button>
-          )}
-          <h1 className="text-3xl font-bold text-gray-900 mt-2">
-            {paymentStep === "details" ? "Checkout" : "Payment"}
-          </h1>
+          <Link href="/order" className="text-blue-600 hover:text-blue-800 text-sm">
+            &larr; Back to Order Builder
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 mt-2">Checkout</h1>
         </div>
 
         {error && (
@@ -259,208 +299,212 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Delivery/Payment */}
           <div className="lg:col-span-2 space-y-6">
-            {paymentStep === "details" ? (
-              <>
-                {/* Delivery vs Pickup */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    Delivery Method
-                  </h2>
-                  <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 mb-4">
-                    <button
-                      onClick={() => setIsPickup(false)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        !isPickup
-                          ? "bg-green-600 text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      Delivery
-                    </button>
-                    <button
-                      onClick={() => setIsPickup(true)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isPickup
-                          ? "bg-green-600 text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      Pickup
-                    </button>
-                  </div>
+            {/* Delivery vs Pickup */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Delivery Method
+              </h2>
+              <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 mb-4">
+                <button
+                  onClick={() => setIsPickup(false)}
+                  disabled={orderUpdating}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    !isPickup
+                      ? "bg-green-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  } ${orderUpdating ? "opacity-50" : ""}`}
+                >
+                  Delivery
+                </button>
+                <button
+                  onClick={() => setIsPickup(true)}
+                  disabled={orderUpdating}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isPickup
+                      ? "bg-green-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  } ${orderUpdating ? "opacity-50" : ""}`}
+                >
+                  Pickup
+                </button>
+              </div>
 
-                  {isPickup ? (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-700 font-medium">Pickup Location</p>
-                      <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
-                      <p className="text-green-600 text-sm mt-2 font-medium">No delivery fee</p>
-                    </div>
+              {isPickup ? (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-gray-700 font-medium">Pickup Location</p>
+                  <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
+                  <p className="text-green-600 text-sm mt-2 font-medium">No delivery fee</p>
+                </div>
+              ) : (
+                <div>
+                  {addressLoading ? (
+                    <p className="text-gray-500 text-sm">Loading addresses...</p>
                   ) : (
-                    <div>
-                      {addressLoading ? (
-                        <p className="text-gray-500 text-sm">Loading addresses...</p>
-                      ) : (
-                        <>
-                          {/* Saved Addresses */}
-                          {addresses.length > 0 && (
-                            <div className="space-y-2 mb-4">
-                              {addresses.map((addr) => (
-                                <label
-                                  key={addr.id}
-                                  className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
-                                    selectedAddressId === addr.id
-                                      ? "border-green-500 bg-green-50"
-                                      : "border-gray-200 hover:border-gray-300"
-                                  }`}
-                                >
-                                  <input
-                                    type="radio"
-                                    name="address"
-                                    checked={selectedAddressId === addr.id}
-                                    onChange={() => setSelectedAddressId(addr.id)}
-                                    className="mt-1"
-                                  />
-                                  <div>
-                                    <p className="text-gray-900 text-sm">
-                                      {addr.street}
-                                      {addr.unit && `, ${addr.unit}`}
-                                    </p>
-                                    <p className="text-gray-600 text-sm">
-                                      {addr.city}, {addr.state} {addr.zipCode}
-                                    </p>
-                                    {addr.deliveryNotes && (
-                                      <p className="text-gray-500 text-xs mt-1">
-                                        Note: {addr.deliveryNotes}
-                                      </p>
-                                    )}
-                                    {addr.isDefault && (
-                                      <span className="text-xs text-green-600 font-medium">Default</span>
-                                    )}
-                                  </div>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Add New Address */}
-                          {!showAddressForm ? (
-                            <button
-                              onClick={() => setShowAddressForm(true)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    <>
+                      {/* Saved Addresses */}
+                      {addresses.length > 0 && (
+                        <div className="space-y-2 mb-4">
+                          {addresses.map((addr) => (
+                            <label
+                              key={addr.id}
+                              className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
+                                selectedAddressId === addr.id
+                                  ? "border-green-500 bg-green-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              }`}
                             >
-                              + Add New Address
-                            </button>
-                          ) : (
-                            <form onSubmit={handleSaveAddress} className="border border-gray-200 rounded-lg p-4 space-y-3">
-                              <p className="font-medium text-gray-900 text-sm">New Address</p>
                               <input
-                                type="text"
-                                placeholder="Street Address *"
-                                required
-                                value={newAddress.street}
-                                onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                                type="radio"
+                                name="address"
+                                checked={selectedAddressId === addr.id}
+                                onChange={() => setSelectedAddressId(addr.id)}
+                                disabled={orderUpdating}
+                                className="mt-1"
                               />
-                              <input
-                                type="text"
-                                placeholder="Apt / Unit (optional)"
-                                value={newAddress.unit}
-                                onChange={(e) => setNewAddress({ ...newAddress, unit: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                              />
-                              <div className="grid grid-cols-3 gap-2">
-                                <input
-                                  type="text"
-                                  placeholder="City *"
-                                  required
-                                  value={newAddress.city}
-                                  onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="State *"
-                                  required
-                                  value={newAddress.state}
-                                  onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="ZIP *"
-                                  required
-                                  value={newAddress.zipCode}
-                                  onChange={(e) => setNewAddress({ ...newAddress, zipCode: e.target.value })}
-                                  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                                />
+                              <div>
+                                <p className="text-gray-900 text-sm">
+                                  {addr.street}
+                                  {addr.unit && `, ${addr.unit}`}
+                                </p>
+                                <p className="text-gray-600 text-sm">
+                                  {addr.city}, {addr.state} {addr.zipCode}
+                                </p>
+                                {addr.deliveryNotes && (
+                                  <p className="text-gray-500 text-xs mt-1">
+                                    Note: {addr.deliveryNotes}
+                                  </p>
+                                )}
+                                {addr.isDefault && (
+                                  <span className="text-xs text-green-600 font-medium">Default</span>
+                                )}
                               </div>
-                              <input
-                                type="text"
-                                placeholder="Delivery Notes (optional)"
-                                value={newAddress.deliveryNotes}
-                                onChange={(e) => setNewAddress({ ...newAddress, deliveryNotes: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-                              />
-                              <label className="flex items-center gap-2 text-sm text-gray-700">
-                                <input
-                                  type="checkbox"
-                                  checked={newAddress.isDefault}
-                                  onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
-                                />
-                                Set as default address
-                              </label>
-                              <div className="flex gap-2">
-                                <button
-                                  type="submit"
-                                  disabled={savingAddress}
-                                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                  {savingAddress ? "Saving..." : "Save Address"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowAddressForm(false)}
-                                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </form>
-                          )}
-                        </>
+                            </label>
+                          ))}
+                        </div>
                       )}
-                    </div>
+
+                      {/* Add New Address */}
+                      {!showAddressForm ? (
+                        <button
+                          onClick={() => setShowAddressForm(true)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          + Add New Address
+                        </button>
+                      ) : (
+                        <form onSubmit={handleSaveAddress} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                          <p className="font-medium text-gray-900 text-sm">New Address</p>
+                          <input
+                            type="text"
+                            placeholder="Street Address *"
+                            required
+                            value={newAddress.street}
+                            onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Apt / Unit (optional)"
+                            value={newAddress.unit}
+                            onChange={(e) => setNewAddress({ ...newAddress, unit: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                          />
+                          <div className="grid grid-cols-3 gap-2">
+                            <input
+                              type="text"
+                              placeholder="City *"
+                              required
+                              value={newAddress.city}
+                              onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="State *"
+                              required
+                              value={newAddress.state}
+                              onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="ZIP *"
+                              required
+                              value={newAddress.zipCode}
+                              onChange={(e) => setNewAddress({ ...newAddress, zipCode: e.target.value })}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Delivery Notes (optional)"
+                            value={newAddress.deliveryNotes}
+                            onChange={(e) => setNewAddress({ ...newAddress, deliveryNotes: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                          />
+                          <label className="flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                              type="checkbox"
+                              checked={newAddress.isDefault}
+                              onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
+                            />
+                            Set as default address
+                          </label>
+                          <div className="flex gap-2">
+                            <button
+                              type="submit"
+                              disabled={savingAddress}
+                              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {savingAddress ? "Saving..." : "Save Address"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowAddressForm(false)}
+                              className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
                   )}
                 </div>
+              )}
+            </div>
 
-                {/* Payment Info */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment</h2>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-blue-800 text-sm font-medium">Credit / Debit Card</p>
-                    <p className="text-blue-700 text-sm mt-1">
-                      You&apos;ll enter your card details in the next step.
-                    </p>
-                  </div>
+            {/* Payment */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment</h2>
+              {orderCreating ? (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <p className="text-gray-600 text-sm">Initializing payment...</p>
                 </div>
-              </>
-            ) : (
-              /* Payment Step */
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Enter Payment Details
-                </h2>
-                {clientSecret && (
-                  <StripeProvider clientSecret={clientSecret}>
-                    <PaymentForm
-                      orderId={orderId!}
-                      onSuccess={handlePaymentSuccess}
-                      onError={handlePaymentError}
-                    />
-                  </StripeProvider>
-                )}
-              </div>
-            )}
+              ) : canShowPayment ? (
+                <StripeProvider clientSecret={clientSecret}>
+                  <PaymentForm
+                    orderId={orderId}
+                    onSuccess={handlePaymentSuccess}
+                    onError={handlePaymentError}
+                  />
+                </StripeProvider>
+              ) : needsAddress ? (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-yellow-800 text-sm font-medium">Add a delivery address</p>
+                  <p className="text-yellow-700 text-sm mt-1">
+                    Please add a delivery address above, or switch to pickup.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <p className="text-gray-600 text-sm">Loading payment form...</p>
+                </div>
+              )}
+              {orderUpdating && (
+                <p className="text-sm text-gray-500 mt-2">Updating order...</p>
+              )}
+            </div>
           </div>
 
           {/* Right: Order Summary */}
@@ -512,16 +556,6 @@ export default function CheckoutPage() {
                   <span>${total.toFixed(2)}</span>
                 </div>
               </div>
-
-              {paymentStep === "details" && (
-                <button
-                  onClick={handleProceedToPayment}
-                  disabled={submitting || (!isPickup && !selectedAddressId)}
-                  className="w-full mt-4 bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? "Processing..." : "Proceed to Payment"}
-                </button>
-              )}
             </div>
           </div>
         </div>

@@ -170,6 +170,7 @@ model MenuItem {
   id          String       @id @default(cuid())
   name        String
   description String?
+  imageUrl    String?
   type        MenuItemType
   isStaple    Boolean      @default(false)  // Always available (masitas, picadillo)
   isActive    Boolean      @default(true)
