@@ -29,31 +29,22 @@ export async function POST(request: Request) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user and customer in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create User
-      const user = await tx.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          role: "CUSTOMER",
+    // Create user with nested customer creation
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role: "CUSTOMER",
+        customer: {
+          create: {},
         },
-      });
-
-      // Create Customer linked to User
-      const customer = await tx.customer.create({
-        data: {
-          userId: user.id,
-        },
-      });
-
-      return { user, customer };
+      },
     });
 
     return NextResponse.json(
-      { message: "User created successfully", userId: result.user.id },
+      { message: "User created successfully", userId: user.id },
       { status: 201 }
     );
   } catch (error) {
