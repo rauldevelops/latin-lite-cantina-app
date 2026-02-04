@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
 
 async function getPricingConfig() {
   const config = await prisma.pricingConfig.findFirst();
@@ -52,9 +53,9 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { orderNumber: { contains: search, mode: "insensitive" } },
-        { customer: { firstName: { contains: search, mode: "insensitive" } } },
-        { customer: { lastName: { contains: search, mode: "insensitive" } } },
-        { customer: { email: { contains: search, mode: "insensitive" } } },
+        { customer: { user: { firstName: { contains: search, mode: "insensitive" } } } },
+        { customer: { user: { lastName: { contains: search, mode: "insensitive" } } } },
+        { customer: { user: { email: { contains: search, mode: "insensitive" } } } },
       ];
     }
 
@@ -72,7 +73,11 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         customer: {
-          select: { firstName: true, lastName: true, email: true },
+          include: {
+            user: {
+              select: { firstName: true, lastName: true, email: true },
+            },
+          },
         },
         address: true,
         weeklyMenu: { select: { weekStartDate: true } },
@@ -81,7 +86,17 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(orders);
+    // Transform to flatten customer.user for frontend compatibility
+    const result = orders.map((order) => ({
+      ...order,
+      customer: {
+        firstName: order.customer.user.firstName,
+        lastName: order.customer.user.lastName,
+        email: order.customer.user.email,
+      },
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching orders:", error);
     return NextResponse.json(
@@ -131,9 +146,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate customer
-    const customer = await prisma.user.findUnique({ where: { id: customerId } });
-    if (!customer || customer.role !== "CUSTOMER") {
+    // Validate customer - customerId is now Customer.id
+    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    if (!customer) {
       return NextResponse.json({ error: "Customer not found" }, { status: 400 });
     }
 
@@ -143,7 +158,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Delivery address is required" }, { status: 400 });
       }
       const address = await prisma.address.findUnique({ where: { id: addressId } });
-      if (!address || address.userId !== customerId) {
+      if (!address || address.customerId !== customerId) {
         return NextResponse.json({ error: "Invalid delivery address" }, { status: 400 });
       }
     }
@@ -278,14 +293,37 @@ export async function POST(request: NextRequest) {
         },
       },
       include: {
-        customer: { select: { firstName: true, lastName: true } },
+        customer: {
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+          },
+        },
         orderDays: {
           include: { orderItems: { include: { menuItem: true } } },
         },
       },
     });
 
-    return NextResponse.json(order, { status: 201 });
+    // Send confirmation email for PAID or CREDIT_ACCOUNT orders
+    if (paymentStatus === "PAID" || paymentStatus === "CREDIT_ACCOUNT") {
+      const emailResult = await sendOrderConfirmationEmail(order.id);
+      if (emailResult.success) {
+        console.log(`Order confirmation email sent for ${order.orderNumber}`);
+      } else {
+        console.error(`Failed to send confirmation email for ${order.orderNumber}:`, emailResult.error);
+      }
+    }
+
+    // Transform response for frontend
+    const response = {
+      ...order,
+      customer: {
+        firstName: order.customer.user.firstName,
+        lastName: order.customer.user.lastName,
+      },
+    };
+
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
     console.error("Error creating admin order:", error);
     return NextResponse.json(

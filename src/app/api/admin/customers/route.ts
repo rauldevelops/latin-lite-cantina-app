@@ -14,9 +14,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const creditOnly = searchParams.get("creditOnly") === "true";
 
-    const where: Record<string, unknown> = {
-      role: "CUSTOMER",
-    };
+    const where: Record<string, unknown> = {};
 
     if (creditOnly) {
       where.isCreditAccount = true;
@@ -24,29 +22,43 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { firstName: { contains: search, mode: "insensitive" } },
-        { lastName: { contains: search, mode: "insensitive" } },
-        { email: { contains: search, mode: "insensitive" } },
-        { phone: { contains: search, mode: "insensitive" } },
+        { user: { firstName: { contains: search, mode: "insensitive" } } },
+        { user: { lastName: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+        { user: { phone: { contains: search, mode: "insensitive" } } },
       ];
     }
 
-    const customers = await prisma.user.findMany({
+    const customers = await prisma.customer.findMany({
       where,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        isCreditAccount: true,
-        createdAt: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
+        },
         _count: { select: { orders: true } },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(customers);
+    // Transform to match expected frontend format
+    const result = customers.map((c) => ({
+      id: c.id,
+      firstName: c.user.firstName,
+      lastName: c.user.lastName,
+      email: c.user.email,
+      phone: c.user.phone,
+      isCreditAccount: c.isCreditAccount,
+      createdAt: c.createdAt,
+      _count: c._count,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching customers:", error);
     return NextResponse.json(
@@ -84,52 +96,78 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const customer = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        email: email || null,
-        phone: phone || null,
-        role: "CUSTOMER",
-        isCreditAccount: !!isCreditAccount,
-        notes: notes || null,
-        ...(address && address.street
-          ? {
-              addresses: {
-                create: {
-                  street: address.street,
-                  unit: address.unit || null,
-                  city: address.city,
-                  state: address.state,
-                  zipCode: address.zipCode,
-                  deliveryNotes: address.deliveryNotes || null,
+    // Create User and Customer in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create User
+      const user = await tx.user.create({
+        data: {
+          firstName,
+          lastName,
+          email: email || null,
+          phone: phone || null,
+          role: "CUSTOMER",
+        },
+      });
+
+      // Create Customer linked to User
+      const customer = await tx.customer.create({
+        data: {
+          userId: user.id,
+          isCreditAccount: !!isCreditAccount,
+          notes: notes || null,
+          ...(address && address.street
+            ? {
+                addresses: {
+                  create: {
+                    street: address.street,
+                    unit: address.unit || null,
+                    city: address.city,
+                    state: address.state,
+                    zipCode: address.zipCode,
+                    deliveryNotes: address.deliveryNotes || null,
+                  },
                 },
-              },
-            }
-          : {}),
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        isCreditAccount: true,
-        addresses: {
-          select: {
-            id: true,
-            street: true,
-            unit: true,
-            city: true,
-            state: true,
-            zipCode: true,
-            deliveryNotes: true,
+              }
+            : {}),
+        },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
+          },
+          addresses: {
+            select: {
+              id: true,
+              street: true,
+              unit: true,
+              city: true,
+              state: true,
+              zipCode: true,
+              deliveryNotes: true,
+            },
           },
         },
-      },
+      });
+
+      return customer;
     });
 
-    return NextResponse.json(customer, { status: 201 });
+    // Transform to match expected frontend format
+    const response = {
+      id: result.id,
+      firstName: result.user.firstName,
+      lastName: result.user.lastName,
+      email: result.user.email,
+      phone: result.user.phone,
+      isCreditAccount: result.isCreditAccount,
+      addresses: result.addresses,
+    };
+
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
     console.error("Error creating customer:", error);
     return NextResponse.json(

@@ -14,8 +14,13 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const customerId = session.user.customerId;
+    if (!customerId) {
+      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
+    }
+
     const existing = await prisma.address.findUnique({ where: { id } });
-    if (!existing || existing.userId !== session.user.id) {
+    if (!existing || existing.customerId !== customerId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -24,7 +29,7 @@ export async function PUT(
 
     if (isDefault) {
       await prisma.address.updateMany({
-        where: { userId: session.user.id, isDefault: true },
+        where: { customerId, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -64,8 +69,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const customerId = session.user.customerId;
+    if (!customerId) {
+      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
+    }
+
     const existing = await prisma.address.findUnique({ where: { id } });
-    if (!existing || existing.userId !== session.user.id) {
+    if (!existing || existing.customerId !== customerId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

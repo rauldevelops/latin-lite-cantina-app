@@ -15,7 +15,6 @@ datasource db {
 enum UserRole {
   CUSTOMER
   ADMIN
-  KITCHEN
   DRIVER
 }
 
@@ -60,20 +59,37 @@ model User {
   phone         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
-  // Customer-specific
-  addresses     Address[]
-  orders        Order[]
+
+  // Auth relations
   accounts      Account[]
   sessions      Session[]
-  isCreditAccount Boolean @default(false)
-  notes         String?
-  
-  // Staff-specific
+
+  // Domain entity relations (1-to-1)
+  customer      Customer?
+  driverProfile Driver?
+
+  // Staff-specific (for tracking who created orders)
   createdOrders Order[]   @relation("CreatedBy")
-  
+
   @@index([email])
   @@index([role])
+}
+
+// Customer - Business entity for customers
+model Customer {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isCreditAccount Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Customer-owned relations
+  addresses       Address[]
+  orders          Order[]
+
+  @@index([userId])
 }
 
 model Account {
@@ -116,24 +132,24 @@ model VerificationToken {
 }
 
 model Address {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   street        String
   unit          String?
   city          String
   state         String
   zipCode       String
-  isDefault     Boolean  @default(false)
-  deliveryNotes String?  // Gate codes, special instructions
+  isDefault     Boolean   @default(false)
+  deliveryNotes String?   // Gate codes, special instructions
   driverId      String?
-  driver        Driver?  @relation(fields: [driverId], references: [id])
+  driver        Driver?   @relation(fields: [driverId], references: [id])
   stopNumber    Int?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   orders        Order[]
 
-  @@index([userId])
+  @@index([customerId])
   @@index([zipCode])
   @@index([driverId])
 }
@@ -141,9 +157,13 @@ model Address {
 model Driver {
   id        String    @id @default(cuid())
   name      String
+  userId    String?   @unique
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   addresses Address[]
+
+  @@index([userId])
 }
 
 model MenuItem {
@@ -207,18 +227,18 @@ model Order {
   id              String        @id @default(cuid())
   orderNumber     String        @unique  // Human-readable: LL-2026-001234
   customerId      String
-  customer        User          @relation(fields: [customerId], references: [id])
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   weeklyMenuId    String
   weeklyMenu      WeeklyMenu    @relation(fields: [weeklyMenuId], references: [id])
-  
+
   status          OrderStatus   @default(PENDING)
   paymentStatus   PaymentStatus @default(PENDING)
   paymentMethod   PaymentMethod?
-  
+
   // Delivery info
   isPickup        Boolean       @default(false)
   addressId       String?
-  address         Address?      @relation(fields: [addressId], references: [id])
+  address         Address?      @relation(fields: [addressId], references: [id], onDelete: SetNull)
   
   // Pricing
   subtotal        Decimal       @db.Decimal(10, 2)
@@ -231,7 +251,7 @@ model Order {
   // Metadata
   notes           String?
   createdById     String?       // Staff who created (for phone orders)
-  createdBy       User?         @relation("CreatedBy", fields: [createdById], references: [id])
+  createdBy       User?         @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
@@ -277,7 +297,7 @@ model OrderItem {
 model Payment {
   id          String        @id @default(cuid())
   orderId     String
-  order       Order         @relation(fields: [orderId], references: [id])
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   amount      Decimal       @db.Decimal(10, 2)
   method      PaymentMethod
   status      PaymentStatus

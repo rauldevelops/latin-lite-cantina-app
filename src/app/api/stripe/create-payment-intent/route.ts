@@ -19,15 +19,21 @@ export async function POST(request: Request) {
     // Fetch the order with customer info
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { customer: true },
+      include: {
+        customer: {
+          include: {
+            user: { select: { email: true } },
+          },
+        },
+      },
     });
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Verify ownership
-    if (order.customerId !== session.user.id) {
+    // Verify ownership - compare to session.user.customerId
+    if (order.customerId !== session.user.customerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -71,7 +77,7 @@ export async function POST(request: Request) {
         orderNumber: order.orderNumber,
         customerId: order.customerId,
       },
-      receipt_email: order.customer.email || undefined,
+      receipt_email: order.customer.user.email || undefined,
       description: `Latin Lite Cantina - Order ${order.orderNumber}`,
     });
 

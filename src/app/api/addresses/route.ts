@@ -10,8 +10,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const customerId = session.user.customerId;
+    if (!customerId) {
+      return NextResponse.json([]);
+    }
+
     const addresses = await prisma.address.findMany({
-      where: { userId: session.user.id },
+      where: { customerId },
       orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
 
@@ -33,6 +38,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const customerId = session.user.customerId;
+    if (!customerId) {
+      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
+    }
+
     const data = await request.json();
     const { street, unit, city, state, zipCode, deliveryNotes, isDefault } = data;
 
@@ -46,14 +56,14 @@ export async function POST(request: Request) {
     // If setting as default, unset any existing default
     if (isDefault) {
       await prisma.address.updateMany({
-        where: { userId: session.user.id, isDefault: true },
+        where: { customerId, isDefault: true },
         data: { isDefault: false },
       });
     }
 
     const address = await prisma.address.create({
       data: {
-        userId: session.user.id,
+        customerId,
         street,
         unit: unit || null,
         city,

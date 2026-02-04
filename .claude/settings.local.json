@@ -5,7 +5,10 @@
       "Bash(npx prisma db push:*)",
       "Bash(npx next build:*)",
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"Yes, reset the database\" npx prisma db push:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

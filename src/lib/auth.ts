@@ -57,6 +57,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role as UserRole;
+
+        // Lookup customerId for CUSTOMER role users
+        if (user.role === "CUSTOMER") {
+          const customer = await prisma.customer.findUnique({
+            where: { userId: user.id },
+            select: { id: true },
+          });
+          if (customer) {
+            token.customerId = customer.id;
+          }
+        }
       }
       return token;
     },
@@ -65,6 +76,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         if (token.role) {
           session.user.role = token.role as UserRole;
+        }
+        if (token.customerId) {
+          session.user.customerId = token.customerId as string;
         }
       }
       return session;

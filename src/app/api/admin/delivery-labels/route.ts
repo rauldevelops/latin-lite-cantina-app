@@ -43,9 +43,13 @@ export async function GET(request: NextRequest) {
         ...(driverId ? { address: { driverId } } : {}),
       },
       include: {
-        customer: { select: { firstName: true, lastName: true, phone: true } },
+        customer: {
+          include: {
+            user: { select: { firstName: true, lastName: true, phone: true } },
+          },
+        },
         address: {
-          include: { driver: { select: { name: true } } },
+          include: { driver: { select: { id: true, name: true } } },
         },
         orderDays: {
           where: { dayOfWeek: dayNum },
@@ -118,9 +122,10 @@ export async function GET(request: NextRequest) {
 
         labels.push({
           orderNumber: order.orderNumber,
-          customerFirstName: order.customer.firstName,
-          customerLastName: order.customer.lastName,
-          phone: order.customer.phone,
+          customerFirstName: order.customer.user.firstName,
+          customerLastName: order.customer.user.lastName,
+          phone: order.customer.user.phone,
+          addressId: order.addressId,
           address: order.address
             ? {
                 street: order.address.street,
@@ -131,6 +136,7 @@ export async function GET(request: NextRequest) {
                 deliveryNotes: order.address.deliveryNotes,
               }
             : null,
+          driverId: order.address?.driver?.id || null,
           driverName: order.address?.driver?.name || null,
           stopNumber: order.address?.stopNumber || null,
           weekStartDate: weeklyMenu.weekStartDate.toISOString().split("T")[0],
@@ -153,9 +159,10 @@ export async function GET(request: NextRequest) {
         bagIndex++;
         labels.push({
           orderNumber: order.orderNumber,
-          customerFirstName: order.customer.firstName,
-          customerLastName: order.customer.lastName,
-          phone: order.customer.phone,
+          customerFirstName: order.customer.user.firstName,
+          customerLastName: order.customer.user.lastName,
+          phone: order.customer.user.phone,
+          addressId: order.addressId,
           address: order.address
             ? {
                 street: order.address.street,
@@ -166,6 +173,7 @@ export async function GET(request: NextRequest) {
                 deliveryNotes: order.address.deliveryNotes,
               }
             : null,
+          driverId: order.address?.driver?.id || null,
           driverName: order.address?.driver?.name || null,
           stopNumber: order.address?.stopNumber || null,
           weekStartDate: weeklyMenu.weekStartDate.toISOString().split("T")[0],

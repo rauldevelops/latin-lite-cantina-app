@@ -14,17 +14,18 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const customer = await prisma.user.findUnique({
+    const customer = await prisma.customer.findUnique({
       where: { id },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        isCreditAccount: true,
-        notes: true,
-        createdAt: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
+        },
         addresses: {
           select: {
             id: true,
@@ -59,7 +60,21 @@ export async function GET(
       return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
-    return NextResponse.json(customer);
+    // Transform to match expected frontend format
+    const result = {
+      id: customer.id,
+      firstName: customer.user.firstName,
+      lastName: customer.user.lastName,
+      email: customer.user.email,
+      phone: customer.user.phone,
+      isCreditAccount: customer.isCreditAccount,
+      notes: customer.notes,
+      createdAt: customer.createdAt,
+      addresses: customer.addresses,
+      orders: customer.orders,
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching customer:", error);
     return NextResponse.json(
@@ -84,21 +99,41 @@ export async function PATCH(
     const data = await request.json();
     const { isCreditAccount, notes, phone, email, addresses } = data;
 
-    const updateData: Record<string, unknown> = {};
-    if (isCreditAccount !== undefined) updateData.isCreditAccount = isCreditAccount;
-    if (notes !== undefined) updateData.notes = notes;
-    if (phone !== undefined) updateData.phone = phone;
-    if (email !== undefined) updateData.email = email;
-
-    const customer = await prisma.user.update({
+    // Get customer to find associated user
+    const customer = await prisma.customer.findUnique({
       where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        isCreditAccount: true,
-        notes: true,
-        phone: true,
-      },
+      select: { userId: true },
+    });
+
+    if (!customer) {
+      return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+    }
+
+    // Update Customer fields
+    const customerUpdateData: Record<string, unknown> = {};
+    if (isCreditAccount !== undefined) customerUpdateData.isCreditAccount = isCreditAccount;
+    if (notes !== undefined) customerUpdateData.notes = notes;
+
+    // Update User fields
+    const userUpdateData: Record<string, unknown> = {};
+    if (phone !== undefined) userUpdateData.phone = phone;
+    if (email !== undefined) userUpdateData.email = email;
+
+    // Update both in transaction
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(customerUpdateData).length > 0) {
+        await tx.customer.update({
+          where: { id },
+          data: customerUpdateData,
+        });
+      }
+
+      if (Object.keys(userUpdateData).length > 0) {
+        await tx.user.update({
+          where: { id: customer.userId },
+          data: userUpdateData,
+        });
+      }
     });
 
     // Update addresses if provided
@@ -129,7 +164,7 @@ export async function PATCH(
         } else {
           await prisma.address.create({
             data: {
-              userId: id,
+              customerId: id,
               street: addr.street,
               unit: addr.unit || null,
               city: addr.city,
@@ -144,15 +179,16 @@ export async function PATCH(
       }
     }
 
-    // Re-fetch with addresses
-    const updated = await prisma.user.findUnique({
+    // Re-fetch with all data
+    const updated = await prisma.customer.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        isCreditAccount: true,
-        notes: true,
-        phone: true,
+      include: {
+        user: {
+          select: {
+            email: true,
+            phone: true,
+          },
+        },
         addresses: {
           select: {
             id: true,
@@ -170,7 +206,17 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(updated);
+    // Transform response
+    const result = {
+      id: updated!.id,
+      email: updated!.user.email,
+      isCreditAccount: updated!.isCreditAccount,
+      notes: updated!.notes,
+      phone: updated!.user.phone,
+      addresses: updated!.addresses,
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error updating customer:", error);
     return NextResponse.json(

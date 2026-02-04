@@ -18,6 +18,7 @@ type Label = {
   customerFirstName: string;
   customerLastName: string;
   phone: string | null;
+  addressId: string | null;
   address: {
     street: string;
     unit: string | null;
@@ -26,6 +27,7 @@ type Label = {
     zipCode: string;
     deliveryNotes: string | null;
   } | null;
+  driverId: string | null;
   driverName: string | null;
   stopNumber: number | null;
   dayLabel: string;
@@ -56,6 +58,55 @@ export default function DeliveryManifestPage() {
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [savingStopNumber, setSavingStopNumber] = useState<string | null>(null);
+  const [savingDriver, setSavingDriver] = useState<string | null>(null);
+
+  async function updateDriver(addressId: string, driverId: string | null) {
+    setSavingDriver(addressId);
+    try {
+      const response = await fetch(`/api/admin/addresses/${addressId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driverId }),
+      });
+      if (!response.ok) throw new Error("Failed to update");
+      // Update local state
+      const driver = drivers.find((d) => d.id === driverId);
+      setLabels((prev) =>
+        prev.map((l) =>
+          l.addressId === addressId
+            ? { ...l, driverId, driverName: driver?.name || null }
+            : l
+        )
+      );
+    } catch {
+      setError("Failed to save driver");
+    } finally {
+      setSavingDriver(null);
+    }
+  }
+
+  async function updateStopNumber(addressId: string, stopNumber: number | null) {
+    setSavingStopNumber(addressId);
+    try {
+      const response = await fetch(`/api/admin/addresses/${addressId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stopNumber }),
+      });
+      if (!response.ok) throw new Error("Failed to update");
+      // Update local state
+      setLabels((prev) =>
+        prev.map((l) =>
+          l.addressId === addressId ? { ...l, stopNumber } : l
+        )
+      );
+    } catch {
+      setError("Failed to save stop number");
+    } finally {
+      setSavingStopNumber(null);
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -193,12 +244,12 @@ export default function DeliveryManifestPage() {
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stop #</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver Notes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
               </tr>
@@ -222,7 +273,72 @@ export default function DeliveryManifestPage() {
 
                 return (
                   <tr key={i}>
-                    <td className="px-6 py-4 text-gray-900 font-medium">{o.stopNumber ?? "—"}</td>
+                    <td className="px-6 py-4 text-gray-900">
+                      <span className="print:hidden">
+                        {o.addressId ? (
+                          <select
+                            value={o.driverId || ""}
+                            onChange={(e) => {
+                              const val = e.target.value || null;
+                              if (o.addressId) {
+                                updateDriver(o.addressId, val);
+                              }
+                            }}
+                            disabled={savingDriver === o.addressId}
+                            className="w-32 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                          >
+                            <option value="">Unassigned</option>
+                            {drivers.map((d) => (
+                              <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          "—"
+                        )}
+                      </span>
+                      <span className="hidden print:inline">{o.driverName || "—"}</span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900 font-medium print:text-center">
+                      <span className="print:hidden">
+                        {o.addressId ? (
+                          <input
+                            type="number"
+                            min="1"
+                            value={o.stopNumber ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                              // Optimistic update
+                              setLabels((prev) =>
+                                prev.map((l) =>
+                                  l.addressId === o.addressId ? { ...l, stopNumber: val } : l
+                                )
+                              );
+                            }}
+                            onBlur={(e) => {
+                              if (o.addressId) {
+                                const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                                updateStopNumber(o.addressId, val);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && o.addressId) {
+                                const val = (e.target as HTMLInputElement).value
+                                  ? parseInt((e.target as HTMLInputElement).value, 10)
+                                  : null;
+                                updateStopNumber(o.addressId, val);
+                                (e.target as HTMLInputElement).blur();
+                              }
+                            }}
+                            disabled={savingStopNumber === o.addressId}
+                            className="w-16 px-2 py-1 text-center border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                            placeholder="—"
+                          />
+                        ) : (
+                          "—"
+                        )}
+                      </span>
+                      <span className="hidden print:inline">{o.stopNumber ?? "—"}</span>
+                    </td>
                     <td className="px-6 py-4 text-gray-900">{o.customerLastName}, {o.customerFirstName}</td>
                     <td className="px-6 py-4 text-gray-700 text-xs">
                       {o.address ? (
@@ -234,7 +350,6 @@ export default function DeliveryManifestPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-700">{o.phone ? formatPhoneNumber(o.phone) : "—"}</td>
                     <td className="px-6 py-4 text-gray-700 text-xs">{o.address?.deliveryNotes || "—"}</td>
-                    <td className="px-6 py-4 text-gray-700">{o.driverName || "—"}</td>
                     <td className="px-6 py-4 text-gray-700 text-xs">
                       {summary.join(", ") || "—"}
                     </td>

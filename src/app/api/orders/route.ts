@@ -29,6 +29,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please log in to place an order" }, { status: 401 });
     }
 
+    // Get customer ID from session
+    const customerId = session.user.customerId;
+    if (!customerId) {
+      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
+    }
+
     const { weeklyMenuId, orderDays, isPickup, addressId } = await request.json();
 
     const MIN_DAYS_PER_ORDER = 3;
@@ -65,7 +71,7 @@ export async function POST(request: Request) {
         );
       }
       const address = await prisma.address.findUnique({ where: { id: addressId } });
-      if (!address || address.userId !== session.user.id) {
+      if (!address || address.customerId !== customerId) {
         return NextResponse.json(
           { error: "Invalid delivery address" },
           { status: 400 }
@@ -141,7 +147,7 @@ export async function POST(request: Request) {
     const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
-        customerId: session.user.id,
+        customerId,
         weeklyMenuId,
         isPickup: !!isPickup,
         addressId: isPickup ? null : addressId,
@@ -243,8 +249,14 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get customer ID from session
+    const customerId = session.user.customerId;
+    if (!customerId) {
+      return NextResponse.json([]);
+    }
+
     const orders = await prisma.order.findMany({
-      where: { customerId: session.user.id },
+      where: { customerId },
       include: {
         weeklyMenu: true,
         orderDays: {

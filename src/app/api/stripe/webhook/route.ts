@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
 import Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -66,6 +67,14 @@ export async function POST(request: Request) {
           });
 
           console.log(`Order ${orderId} marked as PAID via webhook`);
+
+          // Send order confirmation email
+          const emailResult = await sendOrderConfirmationEmail(orderId);
+          if (emailResult.success) {
+            console.log(`Order confirmation email sent for ${orderId}`);
+          } else {
+            console.error(`Failed to send confirmation email for ${orderId}:`, emailResult.error);
+          }
         } catch (dbError) {
           console.error(`Failed to update order ${orderId}:`, dbError);
         }

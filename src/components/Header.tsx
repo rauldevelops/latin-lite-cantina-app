@@ -23,7 +23,7 @@ export default function Header() {
   // On admin pages, show a minimal header
   if (isAdminPage) {
     return (
-      <header className="bg-gray-900 border-b border-gray-800">
+      <header className="bg-gray-900 border-b border-gray-800 print:hidden">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             <Link href="/" className="flex items-center gap-2">
@@ -64,7 +64,7 @@ export default function Header() {
 
   // Regular header for customer-facing pages
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="bg-white shadow-sm border-b border-gray-200 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo / Brand */}
@@ -87,16 +87,38 @@ export default function Header() {
               Menu
             </Link>
             {user && (
-              <Link
-                href="/order"
-                className={`text-sm font-medium ${
-                  pathname?.startsWith("/order")
-                    ? "text-green-600"
-                    : "text-gray-700 hover:text-green-600"
-                }`}
-              >
-                Order
-              </Link>
+              <>
+                <Link
+                  href="/upcoming"
+                  className={`text-sm font-medium ${
+                    pathname === "/upcoming"
+                      ? "text-green-600"
+                      : "text-gray-700 hover:text-green-600"
+                  }`}
+                >
+                  Upcoming
+                </Link>
+                <Link
+                  href="/order"
+                  className={`text-sm font-medium ${
+                    pathname?.startsWith("/order")
+                      ? "text-green-600"
+                      : "text-gray-700 hover:text-green-600"
+                  }`}
+                >
+                  Order
+                </Link>
+                <Link
+                  href="/orders"
+                  className={`text-sm font-medium ${
+                    pathname?.startsWith("/orders")
+                      ? "text-green-600"
+                      : "text-gray-700 hover:text-green-600"
+                  }`}
+                >
+                  My Orders
+                </Link>
+              </>
             )}
             {isAdmin && (
               <Link

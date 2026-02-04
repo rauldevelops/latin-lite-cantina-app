@@ -18,7 +18,11 @@ export async function GET(
       where: { id },
       include: {
         customer: {
-          select: { firstName: true, lastName: true, email: true, phone: true },
+          include: {
+            user: {
+              select: { firstName: true, lastName: true, email: true, phone: true },
+            },
+          },
         },
         address: true,
         weeklyMenu: { select: { weekStartDate: true } },
@@ -37,7 +41,18 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return NextResponse.json(order);
+    // Transform to flatten customer.user for frontend compatibility
+    const result = {
+      ...order,
+      customer: {
+        firstName: order.customer.user.firstName,
+        lastName: order.customer.user.lastName,
+        email: order.customer.user.email,
+        phone: order.customer.user.phone,
+      },
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching order:", error);
     return NextResponse.json(

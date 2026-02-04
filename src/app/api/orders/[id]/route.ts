@@ -36,7 +36,8 @@ export async function GET(
     }
 
     // Only allow users to see their own orders (unless admin)
-    if (order.customerId !== session.user.id && session.user.role !== "ADMIN") {
+    // Now comparing customerId to session.user.customerId
+    if (order.customerId !== session.user.customerId && session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
