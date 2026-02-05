@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
 
         // Distribute extras across completa labels (put all on first label for simplicity)
         const labelExtras = bagIndex === 1
-          ? { extraEntrees: extraEntrees.map((i) => i.menuItem.name), extraSides: extraSides.map((i) => i.menuItem.name) }
+          ? { extraEntrees: extraEntrees.flatMap((i) => Array(i.quantity).fill(i.menuItem.name)), extraSides: extraSides.flatMap((i) => Array(i.quantity).fill(i.menuItem.name)) }
           : { extraEntrees: [] as string[], extraSides: [] as string[] };
 
         labels.push({
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
           orderIndex: customerOrderIndex[cid],
           orderTotal: customerOrderCounts[cid],
           entree: entree?.menuItem.name || null,
-          sides: sides.map((s) => s.menuItem.name),
+          sides: sides.flatMap((s) => Array(s.quantity).fill(s.menuItem.name)),
           ...labelExtras,
           balanceDue: bagIndex === 1 ? Number(order.totalAmount) : 0,
           enteredDate: order.createdAt.toISOString().split("T")[0],
@@ -185,8 +185,8 @@ export async function GET(request: NextRequest) {
           orderTotal: customerOrderCounts[cid],
           entree: null,
           sides: [],
-          extraEntrees: extraEntrees.map((i) => i.menuItem.name),
-          extraSides: extraSides.map((i) => i.menuItem.name),
+          extraEntrees: extraEntrees.flatMap((i) => Array(i.quantity).fill(i.menuItem.name)),
+          extraSides: extraSides.flatMap((i) => Array(i.quantity).fill(i.menuItem.name)),
           balanceDue: Number(order.totalAmount),
           enteredDate: order.createdAt.toISOString().split("T")[0],
         });

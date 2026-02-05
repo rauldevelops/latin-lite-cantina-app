@@ -149,8 +149,8 @@ export default function DeliveryManifestPage() {
   const selectedMenu = menus.find((m) => m.id === selectedMenuId);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-8 print:min-h-0 print:bg-white print:p-0">
+      <div className="max-w-6xl mx-auto print:max-w-none">
       <div className="print:hidden">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Delivery Manifest</h1>
@@ -223,13 +223,13 @@ export default function DeliveryManifestPage() {
       </div>
 
       {/* Print header */}
-      <div className="hidden print:block mb-4">
-        <h1 className="text-xl font-bold">
+      <div className="hidden print:block mb-2">
+        <h1 className="text-sm font-bold">
           Delivery Manifest — {DAYS.find((d) => d.num === selectedDay)?.name}{" "}
           {selectedMenu && `(Week of ${new Date(selectedMenu.weekStartDate).toLocaleDateString()})`}
         </h1>
         {selectedDriverId && (
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-gray-600">
             Driver: {drivers.find((d) => d.id === selectedDriverId)?.name || ""}
           </p>
         )}
@@ -240,18 +240,18 @@ export default function DeliveryManifestPage() {
       ) : orders.length === 0 ? (
         <p className="text-gray-500 print:hidden">No deliveries for this day.</p>
       ) : (
-        <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+        <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto print:shadow-none print:rounded-none print:overflow-visible">
+          <table className="min-w-full divide-y divide-gray-200 text-sm print:text-[9px] print:w-full print:min-w-0 print:table-fixed">
+            <thead className="bg-gray-50 print:bg-white">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stop #</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Driver Notes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[10%]">Driver</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[5%]">Stop</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[14%]">Customer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[22%]">Address</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[12%]">Phone</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[15%]">Notes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[14%]">Items</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase print:px-1 print:py-0.5 print:text-[8px] print:w-[8%]">Balance</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -267,13 +267,13 @@ export default function DeliveryManifestPage() {
                   extraSideCount += l.extraSides.length;
                 }
                 const summary: string[] = [];
-                if (completaCount > 0) summary.push(`${completaCount} Completa${completaCount > 1 ? "s" : ""}`);
-                if (extraEntreeCount > 0) summary.push(`${extraEntreeCount} Extra Entree${extraEntreeCount > 1 ? "s" : ""}`);
-                if (extraSideCount > 0) summary.push(`${extraSideCount} Extra Side${extraSideCount > 1 ? "s" : ""}`);
+                if (completaCount > 0) summary.push(`${completaCount}C`);
+                if (extraEntreeCount > 0) summary.push(`${extraEntreeCount}XE`);
+                if (extraSideCount > 0) summary.push(`${extraSideCount}XS`);
 
                 return (
                   <tr key={i}>
-                    <td className="px-6 py-4 text-gray-900">
+                    <td className="px-6 py-4 text-gray-900 print:px-1 print:py-0.5">
                       <span className="print:hidden">
                         {o.addressId ? (
                           <select
@@ -298,7 +298,7 @@ export default function DeliveryManifestPage() {
                       </span>
                       <span className="hidden print:inline">{o.driverName || "—"}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-900 font-medium print:text-center">
+                    <td className="px-6 py-4 text-gray-900 font-medium print:px-1 print:py-0.5 print:text-center">
                       <span className="print:hidden">
                         {o.addressId ? (
                           <input
@@ -339,29 +339,28 @@ export default function DeliveryManifestPage() {
                       </span>
                       <span className="hidden print:inline">{o.stopNumber ?? "—"}</span>
                     </td>
-                    <td className="px-6 py-4 text-gray-900">{o.customerLastName}, {o.customerFirstName}</td>
-                    <td className="px-6 py-4 text-gray-700 text-xs">
+                    <td className="px-6 py-4 text-gray-900 print:px-1 print:py-0.5">{o.customerLastName}, {o.customerFirstName}</td>
+                    <td className="px-6 py-4 text-gray-700 text-xs print:px-1 print:py-0.5 print:break-words">
                       {o.address ? (
                         <>
-                          {o.address.street}{o.address.unit ? ` ${o.address.unit}` : ""}<br />
-                          {o.address.city}, {o.address.state} {o.address.zipCode}
+                          {o.address.street}{o.address.unit ? ` ${o.address.unit}` : ""}, {o.address.city} {o.address.zipCode}
                         </>
                       ) : "—"}
                     </td>
-                    <td className="px-6 py-4 text-gray-700">{o.phone ? formatPhoneNumber(o.phone) : "—"}</td>
-                    <td className="px-6 py-4 text-gray-700 text-xs">{o.address?.deliveryNotes || "—"}</td>
-                    <td className="px-6 py-4 text-gray-700 text-xs">
+                    <td className="px-6 py-4 text-gray-700 print:px-1 print:py-0.5">{o.phone ? formatPhoneNumber(o.phone) : "—"}</td>
+                    <td className="px-6 py-4 text-gray-700 text-xs print:px-1 print:py-0.5 print:break-words">{o.address?.deliveryNotes || "—"}</td>
+                    <td className="px-6 py-4 text-gray-700 text-xs print:px-1 print:py-0.5">
                       {summary.join(", ") || "—"}
                     </td>
-                    <td className="px-6 py-4 text-right text-gray-900">${o.balanceDue.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right text-gray-900 print:px-1 print:py-0.5">${o.balanceDue.toFixed(2)}</td>
                   </tr>
                 );
               })}
             </tbody>
-            <tfoot className="bg-gray-50">
+            <tfoot className="bg-gray-50 print:bg-white">
               <tr>
-                <td colSpan={7} className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Total ({orders.length} deliveries)</td>
-                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900">
+                <td colSpan={7} className="px-6 py-3 text-right text-sm font-semibold text-gray-900 print:px-1 print:py-0.5 print:text-[9px]">Total ({orders.length} deliveries)</td>
+                <td className="px-6 py-3 text-right text-sm font-semibold text-gray-900 print:px-1 print:py-0.5 print:text-[9px]">
                   ${orders.reduce((sum, o) => sum + o.balanceDue, 0).toFixed(2)}
                 </td>
               </tr>

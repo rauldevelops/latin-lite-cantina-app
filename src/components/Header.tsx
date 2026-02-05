@@ -118,6 +118,16 @@ export default function Header() {
                 >
                   My Orders
                 </Link>
+                <Link
+                  href="/account"
+                  className={`text-sm font-medium ${
+                    pathname === "/account"
+                      ? "text-green-600"
+                      : "text-gray-700 hover:text-green-600"
+                  }`}
+                >
+                  Account
+                </Link>
               </>
             )}
             {isAdmin && (

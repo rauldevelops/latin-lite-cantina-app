@@ -97,9 +97,9 @@ function LabelCard({ label }: { label: Label }) {
       <div className="grid grid-cols-2 gap-x-6 flex-1 text-sm">
         <div className="space-y-1">
           {label.entree && <div><span className="font-bold">Entree:</span> <span className="font-bold uppercase text-base">{label.entree}</span></div>}
-          {label.sides[0] && <div><span className="font-bold">Side-1:</span> <span className="font-bold uppercase text-base">{label.sides[0]}</span></div>}
-          {label.sides[1] && <div><span className="font-bold">Side-2:</span> <span className="font-bold uppercase text-base">{label.sides[1]}</span></div>}
-          {label.sides[2] && <div><span className="font-bold">Side-3:</span> <span className="font-bold uppercase text-base">{label.sides[2]}</span></div>}
+          {label.sides.map((side, i) => (
+            <div key={`s${i}`}><span className="font-bold">Side-{i + 1}:</span> <span className="font-bold uppercase text-base">{side}</span></div>
+          ))}
         </div>
         <div className="space-y-1">
           {label.extraEntrees.map((e, i) => (

@@ -221,10 +221,14 @@ export async function POST(request: NextRequest) {
     const deliveryFee = isPickup ? 0 : totalMeals * pricing.deliveryFeePerMeal;
     const totalAmount = subtotal + deliveryFee;
 
+    // Auto-confirm orders that are already paid
+    const orderStatus = paymentStatus === "PAID" ? "CONFIRMED" : "PENDING";
+
     // Create order
     const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
+        status: orderStatus,
         customerId,
         weeklyMenuId,
         isPickup: !!isPickup,
