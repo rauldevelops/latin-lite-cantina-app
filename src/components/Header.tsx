@@ -9,6 +9,7 @@ export default function Header() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const user = session?.user;
   const loading = status === "loading";
@@ -18,6 +19,20 @@ export default function Header() {
   async function handleLogout() {
     setLoggingOut(true);
     await signOut({ callbackUrl: "/" });
+  }
+
+  function navLinkClass(active: boolean) {
+    return `text-sm font-medium ${
+      active ? "text-green-600" : "text-gray-700 hover:text-green-600"
+    }`;
+  }
+
+  function mobileNavLinkClass(active: boolean) {
+    return `block px-3 py-2 rounded-md text-base font-medium ${
+      active
+        ? "text-green-600 bg-green-50"
+        : "text-gray-700 hover:text-green-600 hover:bg-gray-50"
+    }`;
   }
 
   // On admin pages, show a minimal header
@@ -74,79 +89,41 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex items-center gap-6">
-            <Link
-              href="/menu"
-              className={`text-sm font-medium ${
-                pathname === "/menu"
-                  ? "text-green-600"
-                  : "text-gray-700 hover:text-green-600"
-              }`}
-            >
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/menu" className={navLinkClass(pathname === "/menu")}>
               Menu
             </Link>
             {user && (
               <>
-                <Link
-                  href="/upcoming"
-                  className={`text-sm font-medium ${
-                    pathname === "/upcoming"
-                      ? "text-green-600"
-                      : "text-gray-700 hover:text-green-600"
-                  }`}
-                >
+                <Link href="/upcoming" className={navLinkClass(pathname === "/upcoming")}>
                   Upcoming
                 </Link>
-                <Link
-                  href="/order"
-                  className={`text-sm font-medium ${
-                    pathname?.startsWith("/order")
-                      ? "text-green-600"
-                      : "text-gray-700 hover:text-green-600"
-                  }`}
-                >
+                <Link href="/order" className={navLinkClass(pathname?.startsWith("/order") ?? false)}>
                   Order
                 </Link>
-                <Link
-                  href="/orders"
-                  className={`text-sm font-medium ${
-                    pathname?.startsWith("/orders")
-                      ? "text-green-600"
-                      : "text-gray-700 hover:text-green-600"
-                  }`}
-                >
+                <Link href="/orders" className={navLinkClass(pathname?.startsWith("/orders") ?? false)}>
                   My Orders
                 </Link>
-                <Link
-                  href="/account"
-                  className={`text-sm font-medium ${
-                    pathname === "/account"
-                      ? "text-green-600"
-                      : "text-gray-700 hover:text-green-600"
-                  }`}
-                >
+                <Link href="/account" className={navLinkClass(pathname === "/account")}>
                   Account
                 </Link>
               </>
             )}
             {isAdmin && (
-              <Link
-                href="/admin"
-                className="text-sm font-medium text-gray-700 hover:text-green-600"
-              >
+              <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-green-600">
                 Admin
               </Link>
             )}
           </nav>
 
-          {/* User Actions */}
-          <div className="flex items-center gap-4">
+          {/* Desktop User Actions */}
+          <div className="hidden md:flex items-center gap-4">
             {loading ? (
               <div className="w-20 h-8 bg-gray-100 rounded animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-700 hidden sm:block">
+                <span className="text-sm text-gray-700 hidden lg:block">
                   {user.name || user.email}
                 </span>
                 <button
@@ -174,8 +151,118 @@ export default function Header() {
               </div>
             )}
           </div>
+
+          {/* Mobile hamburger button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-md text-gray-700 hover:text-green-600 hover:bg-gray-100"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-200">
+          <div className="px-4 py-3 space-y-1">
+            <Link
+              href="/menu"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavLinkClass(pathname === "/menu")}
+            >
+              Menu
+            </Link>
+            {user && (
+              <>
+                <Link
+                  href="/upcoming"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={mobileNavLinkClass(pathname === "/upcoming")}
+                >
+                  Upcoming
+                </Link>
+                <Link
+                  href="/order"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={mobileNavLinkClass(pathname?.startsWith("/order") ?? false)}
+                >
+                  Order
+                </Link>
+                <Link
+                  href="/orders"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={mobileNavLinkClass(pathname?.startsWith("/orders") ?? false)}
+                >
+                  My Orders
+                </Link>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={mobileNavLinkClass(pathname === "/account")}
+                >
+                  Account
+                </Link>
+              </>
+            )}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className={mobileNavLinkClass(pathname?.startsWith("/admin") ?? false)}
+              >
+                Admin
+              </Link>
+            )}
+          </div>
+
+          {/* Mobile user actions */}
+          <div className="border-t border-gray-200 px-4 py-3">
+            {loading ? (
+              <div className="w-32 h-8 bg-gray-100 rounded animate-pulse" />
+            ) : user ? (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">
+                  {user.name || user.email}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                >
+                  {loggingOut ? "..." : "Logout"}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex-1 text-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
