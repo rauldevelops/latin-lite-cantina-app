@@ -47,6 +47,12 @@ enum MenuItemType {
   SIDE
 }
 
+enum SnapshotType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String?   @unique
@@ -307,6 +313,58 @@ model Payment {
   recordedById String?
   notes       String?
   createdAt   DateTime      @default(now())
-  
+
   @@index([orderId])
+}
+
+model DashboardSnapshot {
+  id                   String       @id @default(cuid())
+  snapshotDate         DateTime     @default(now())
+  snapshotType         SnapshotType
+
+  // Financial
+  revenue              Decimal      @db.Decimal(12, 2)
+  revenueCard          Decimal      @db.Decimal(12, 2)
+  revenueCash          Decimal      @db.Decimal(12, 2)
+  revenueCheck         Decimal      @db.Decimal(12, 2)
+  revenueCredit        Decimal      @db.Decimal(12, 2)
+  avgOrderValue        Decimal      @db.Decimal(10, 2)
+
+  // Orders
+  totalOrders          Int
+  ordersPending        Int
+  ordersConfirmed      Int
+  ordersDelivered      Int
+  ordersCancelled      Int
+  cancelledValue       Decimal      @db.Decimal(12, 2)
+  totalCompletas       Int
+  avgCompletasPerOrder Decimal      @db.Decimal(5, 2)
+
+  // Fulfillment
+  ordersPickup         Int
+  ordersDelivery       Int
+  ordersByDayJson      String       // JSON for day breakdown
+  ordersByDriverJson   String       // JSON for driver breakdown
+
+  // Customers
+  totalActiveCustomers Int
+  newCustomers         Int
+  repeatCustomerOrders Int
+
+  // Menu Performance
+  topEntreesJson       String
+  topSidesJson         String
+  leastPopularJson     String
+  dessertSelectionRate Decimal      @db.Decimal(5, 2)
+  soupSelectionRate    Decimal      @db.Decimal(5, 2)
+
+  // Operational
+  upcomingOrderCount   Int
+  completasByDayJson   String
+
+  createdAt            DateTime     @default(now())
+
+  @@index([snapshotDate])
+  @@index([snapshotType])
+  @@unique([snapshotDate, snapshotType])
 }

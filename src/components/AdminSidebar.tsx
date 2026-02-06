@@ -6,6 +6,11 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   {
+    label: "Dashboard",
+    href: "/admin/dashboard",
+    icon: "📊",
+  },
+  {
     label: "Orders",
     href: "/admin/orders",
     icon: "📋",
@@ -88,7 +93,7 @@ export default function AdminSidebar() {
     >
       <div className={`border-b border-gray-700 flex items-center ${collapsed ? "justify-center p-3" : "justify-between p-4"}`}>
         {!collapsed && (
-          <Link href="/admin/orders" className="text-white font-bold text-lg truncate">
+          <Link href="/admin/dashboard" className="text-white font-bold text-lg truncate">
             Admin Dashboard
           </Link>
         )}

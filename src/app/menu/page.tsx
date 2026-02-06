@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 type MenuItem = {
   id: string;
@@ -195,6 +196,12 @@ export default function MenuPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Weekly Menu
           </h1>
+          <Link
+            href="/order"
+            className="inline-block mt-4 px-8 py-3 bg-latin-red text-white font-semibold rounded-full hover:bg-latin-orange transition-colors uppercase tracking-wide"
+          >
+            Order Now
+          </Link>
         </div>
 
         {/* Week Selector Tabs */}
@@ -252,9 +259,10 @@ export default function MenuPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {/* Staples Card */}
             {stapleItems.filter(item => item.type === "ENTREE").length > 0 && (
-              <div
-                className={`rounded-lg shadow ${
-                  weekDisabled ? "bg-gray-100 opacity-60" : "bg-orange-50 border-2 border-orange-200"
+              <Link
+                href="/order"
+                className={`block rounded-lg shadow transition-transform hover:scale-[1.02] ${
+                  weekDisabled ? "bg-gray-100 opacity-60 pointer-events-none" : "bg-orange-50 border-2 border-orange-200 hover:shadow-lg"
                 }`}
               >
                 <h3 className={`font-semibold border-b p-4 ${
@@ -298,16 +306,17 @@ export default function MenuPage() {
                       </div>
                     ))}
                 </div>
-              </div>
+              </Link>
             )}
 
             {DAYS.map((day) => {
               const dayDisabled = isDayDisabled(day.num, selectedMenu.weekStartDate);
               return (
-                <div
+                <Link
                   key={day.num}
-                  className={`rounded-lg shadow ${
-                    dayDisabled ? "bg-gray-100 opacity-60" : "bg-white"
+                  href="/order"
+                  className={`block rounded-lg shadow transition-transform hover:scale-[1.02] ${
+                    dayDisabled ? "bg-gray-100 opacity-60 pointer-events-none" : "bg-white hover:shadow-lg"
                   }`}
                 >
                   <h3 className={`font-semibold border-b p-4 ${
@@ -353,7 +362,7 @@ export default function MenuPage() {
                       ))
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -372,10 +381,11 @@ export default function MenuPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {getSides().map((item) => (
-                  <div
+                  <Link
                     key={item.id}
-                    className={`rounded-lg overflow-hidden ${
-                      weekDisabled ? "bg-gray-200" : "bg-gray-50"
+                    href="/order"
+                    className={`block rounded-lg overflow-hidden transition-transform hover:scale-[1.02] ${
+                      weekDisabled ? "bg-gray-200 pointer-events-none" : "bg-gray-50 hover:shadow-md"
                     }`}
                   >
                     {item.menuItem.imageUrl && (
@@ -403,7 +413,7 @@ export default function MenuPage() {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
