@@ -99,7 +99,7 @@ export default function AdminCustomersPage() {
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+              className="px-4 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
             >
               SEARCH
             </button>

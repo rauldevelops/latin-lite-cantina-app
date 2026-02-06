@@ -177,7 +177,7 @@ function CardPaymentForm({
         type="button"
         onClick={handlePayment}
         disabled={!stripe || isProcessing}
-        className="w-full bg-latin-orange text-white py-3 rounded-full font-semibold hover:bg-latin-red disabled:opacity-50 disabled:cursor-not-allowed uppercase transition-colors"
+        className="w-full bg-latin-red text-white py-3 rounded-full font-semibold hover:bg-latin-orange disabled:opacity-50 disabled:cursor-not-allowed uppercase transition-colors"
       >
         {isProcessing ? "Processing Payment..." : "Process Card Payment"}
       </button>
@@ -793,7 +793,7 @@ function AdminCreateOrderContent() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <Link href="/admin/orders" className="text-latin-orange hover:text-latin-red transition-colors text-sm">
+          <Link href="/admin/orders" className="text-latin-red hover:text-latin-orange transition-colors text-sm">
             &larr; Back to Orders
           </Link>
         </div>
@@ -807,7 +807,7 @@ function AdminCreateOrderContent() {
               key={i}
               className={`flex-1 text-center py-2 rounded-md text-sm font-medium ${
                 step === i + 1
-                  ? "bg-latin-orange text-white"
+                  ? "bg-latin-red text-white"
                   : step > i + 1
                   ? "bg-green-100 text-green-800"
                   : "bg-gray-100 text-gray-500"
@@ -872,7 +872,7 @@ function AdminCreateOrderContent() {
                     <button
                       type="submit"
                       disabled={searching}
-                      className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
                     >
                       {searching ? "..." : "SEARCH"}
                     </button>
@@ -906,7 +906,7 @@ function AdminCreateOrderContent() {
                 {!showNewCustomerForm ? (
                   <button
                     onClick={() => setShowNewCustomerForm(true)}
-                    className="text-sm text-latin-orange hover:text-latin-red transition-colors"
+                    className="text-sm text-latin-red hover:text-latin-orange transition-colors"
                   >
                     + New Customer
                   </button>
@@ -1018,7 +1018,7 @@ function AdminCreateOrderContent() {
                     <button
                       onClick={createNewCustomer}
                       disabled={creatingCustomer || !newCustomer.firstName || !newCustomer.lastName}
-                      className="w-full py-2 px-4 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
+                      className="w-full py-2 px-4 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
                     >
                       {creatingCustomer ? "CREATING..." : "CREATE & SELECT CUSTOMER"}
                     </button>
@@ -1037,7 +1037,7 @@ function AdminCreateOrderContent() {
                 setStep(2);
               }}
               disabled={!selectedCustomer}
-              className="ml-2 px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+              className="ml-2 px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
             >
               NEXT: BUILD ORDER
             </button>
@@ -1085,7 +1085,7 @@ function AdminCreateOrderContent() {
                             <h3 className="text-lg font-semibold text-gray-900">{day.name}</h3>
                             <button
                               onClick={() => addCompleta(day.num)}
-                              className="px-3 py-1 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+                              className="px-3 py-1 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
                             >
                               + Add Completa
                             </button>
@@ -1111,7 +1111,7 @@ function AdminCreateOrderContent() {
                                       {isCompletaComplete(completa) && (
                                         <button
                                           onClick={() => toggleCompletaExpanded(day.num, cIndex)}
-                                          className="text-latin-orange text-sm hover:text-blue-800"
+                                          className="text-latin-red text-sm hover:text-blue-800"
                                         >
                                           {isCompletaExpanded(day.num, cIndex) ? "Collapse" : "Edit"}
                                         </button>
@@ -1129,7 +1129,7 @@ function AdminCreateOrderContent() {
                                   {(completa.entree || completa.sides.length > 0) && (
                                     <div className="flex flex-wrap gap-2 mb-3">
                                       {completa.entree && (
-                                        <span className="px-3 py-1.5 rounded-full text-sm bg-latin-orange text-white uppercase font-semibold">
+                                        <span className="px-3 py-1.5 rounded-full text-sm bg-latin-red text-white uppercase font-semibold">
                                           {completa.entree.menuItem.name}
                                         </span>
                                       )}
@@ -1169,7 +1169,7 @@ function AdminCreateOrderContent() {
                                               }
                                               className={`px-3 py-1.5 rounded-md text-sm ${
                                                 completa.entree?.id === item.id
-                                                  ? "bg-latin-orange text-white"
+                                                  ? "bg-latin-red text-white"
                                                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                               }`}
                                             >
@@ -1234,7 +1234,7 @@ function AdminCreateOrderContent() {
                                     {daySel.extraEntrees.length === 0 && (
                                       <button
                                         onClick={() => toggleExpandedExtras(day.num, "entrees")}
-                                        className="text-xs text-latin-orange hover:text-latin-red transition-colors"
+                                        className="text-xs text-latin-red hover:text-latin-orange transition-colors"
                                       >
                                         Hide
                                       </button>
@@ -1293,7 +1293,7 @@ function AdminCreateOrderContent() {
                                 {daySel.extraEntrees.length === 0 && !expandedExtras[day.num]?.entrees && getEntreesForDay(day.num).length > 0 && (
                                   <button
                                     onClick={() => toggleExpandedExtras(day.num, "entrees")}
-                                    className="px-3 py-1 text-xs text-latin-orange border border-blue-300 rounded-md hover:bg-blue-50"
+                                    className="px-3 py-1 text-xs text-latin-red border border-blue-300 rounded-md hover:bg-blue-50"
                                   >
                                     + Extra Entrees
                                   </button>
@@ -1350,7 +1350,7 @@ function AdminCreateOrderContent() {
                                   </div>
                                 ))}
                                 {daySel.extraEntrees.map((e, i) => (
-                                  <p key={`ee-${i}`} className="text-xs text-latin-orange ml-2">Extra: {e.quantity}x {e.item.menuItem.name}</p>
+                                  <p key={`ee-${i}`} className="text-xs text-latin-red ml-2">Extra: {e.quantity}x {e.item.menuItem.name}</p>
                                 ))}
                                 {daySel.extraSides.map((s, i) => (
                                   <p key={`es-${i}`} className="text-xs text-orange-600 ml-2">Extra: {s.quantity}x {s.name}</p>
@@ -1374,7 +1374,7 @@ function AdminCreateOrderContent() {
                       if (validateStep2()) setStep(3);
                     }}
                     disabled={orderableDays.length === 0}
-                    className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+                    className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
                   >
                     NEXT: DELIVERY & PAYMENT
                   </button>
@@ -1393,13 +1393,13 @@ function AdminCreateOrderContent() {
               <div className="flex gap-3 mb-4">
                 <button
                   onClick={() => setIsPickup(false)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${!isPickup ? "bg-latin-orange text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${!isPickup ? "bg-latin-red text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                 >
                   DELIVERY
                 </button>
                 <button
                   onClick={() => { setIsPickup(true); setSelectedAddressId(null); }}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${isPickup ? "bg-latin-orange text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${isPickup ? "bg-latin-red text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                 >
                   PICKUP
                 </button>
@@ -1483,7 +1483,7 @@ function AdminCreateOrderContent() {
                           type="button"
                           onClick={createPaymentIntent}
                           disabled={creatingPaymentIntent || !pricing}
-                          className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
+                          className="px-4 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
                         >
                           {creatingPaymentIntent ? "INITIALIZING..." : `ENTER CARD FOR $${totals.total.toFixed(2)}`}
                         </button>
@@ -1559,7 +1559,7 @@ function AdminCreateOrderContent() {
                   setError("");
                   if (validateStep3()) setStep(4);
                 }}
-                className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+                className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
               >
                 NEXT: REVIEW
               </button>
@@ -1603,7 +1603,7 @@ function AdminCreateOrderContent() {
                         </div>
                       ))}
                       {daySel.extraEntrees.map((e, i) => (
-                        <p key={`ee-${i}`} className="text-sm text-latin-orange ml-3">
+                        <p key={`ee-${i}`} className="text-sm text-latin-red ml-3">
                           Extra: {e.quantity}x {e.item.menuItem.name}
                         </p>
                       ))}
@@ -1674,7 +1674,7 @@ function AdminCreateOrderContent() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
               >
                 {submitting ? "PLACING ORDER..." : "PLACE ORDER"}
               </button>

@@ -172,7 +172,7 @@ export default function WeeklyMenuBuilderPage() {
         <div className="mb-8">
           <Link
             href="/admin/weekly-menus"
-            className="text-latin-orange hover:text-latin-red transition-colors"
+            className="text-latin-red hover:text-latin-orange transition-colors"
           >
             ← Back to Weekly Menus
           </Link>
@@ -204,7 +204,7 @@ export default function WeeklyMenuBuilderPage() {
                   key={day.num}
                   className={`bg-white shadow rounded-lg p-4 cursor-pointer border-2 ${
                     selectedDay === day.num
-                      ? "border-latin-orange"
+                      ? "border-latin-red"
                       : "border-transparent"
                   }`}
                   onClick={() => setSelectedDay(day.num)}
@@ -323,7 +323,7 @@ export default function WeeklyMenuBuilderPage() {
               {allMenuItems.length === 0 && (
                 <p className="text-sm text-gray-500">
                   No menu items available.{" "}
-                  <Link href="/admin/menu-items/new" className="text-latin-orange">
+                  <Link href="/admin/menu-items/new" className="text-latin-red">
                     Create some first
                   </Link>
                 </p>

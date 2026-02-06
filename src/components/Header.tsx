@@ -23,26 +23,26 @@ export default function Header() {
 
   function navLinkClass(active: boolean) {
     return `text-sm font-medium transition-colors ${
-      active ? "text-latin-orange" : "text-gray-700 hover:text-latin-orange"
+      active ? "text-latin-red" : "text-gray-700 hover:text-latin-red"
     }`;
   }
 
   function mobileNavLinkClass(active: boolean) {
     return `block px-3 py-2 rounded-md text-base font-medium transition-colors ${
       active
-        ? "text-latin-orange bg-orange-50"
-        : "text-gray-700 hover:text-latin-orange hover:bg-gray-50"
+        ? "text-latin-red bg-orange-50"
+        : "text-gray-700 hover:text-latin-red hover:bg-gray-50"
     }`;
   }
 
   // On admin pages, show a minimal header
   if (isAdminPage) {
     return (
-      <header className="bg-gray-900 border-b border-gray-800 print:hidden">
+      <header className="bg-latin-charcoal border-b border-gray-700 print:hidden">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-lg font-bold text-latin-orange">
+              <span className="text-lg font-bold text-latin-red">
                 Latin Lite Cantina
               </span>
               <span className="text-gray-500">|</span>
@@ -84,7 +84,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo / Brand */}
           <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold text-latin-orange">
+            <span className="text-xl font-bold text-latin-red">
               Latin Lite Cantina
             </span>
           </Link>
@@ -111,7 +111,7 @@ export default function Header() {
               </>
             )}
             {isAdmin && (
-              <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-latin-orange transition-colors">
+              <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-latin-red transition-colors">
                 Admin
               </Link>
             )}
@@ -138,13 +138,13 @@ export default function Header() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-latin-orange transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-latin-red transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-latin-orange rounded-full hover:bg-latin-red uppercase transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-latin-red rounded-full hover:bg-latin-orange uppercase transition-colors"
                 >
                   SIGN UP
                 </Link>
@@ -155,7 +155,7 @@ export default function Header() {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-md text-gray-700 hover:text-latin-orange hover:bg-gray-100 transition-colors"
+            className="md:hidden p-2 rounded-md text-gray-700 hover:text-latin-red hover:bg-gray-100 transition-colors"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
@@ -254,7 +254,7 @@ export default function Header() {
                 <Link
                   href="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center px-3 py-2 text-sm font-semibold text-white bg-latin-orange rounded-full hover:bg-latin-red uppercase transition-colors"
+                  className="flex-1 text-center px-3 py-2 text-sm font-semibold text-white bg-latin-red rounded-full hover:bg-latin-orange uppercase transition-colors"
                 >
                   SIGN UP
                 </Link>

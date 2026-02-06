@@ -164,7 +164,7 @@ export default function OrderDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-3xl mx-auto px-4">
-          <Link href="/orders" className="text-green-600 hover:text-green-700 mb-4 inline-block">
+          <Link href="/orders" className="text-latin-red hover:text-latin-orange transition-colors mb-4 inline-block">
             ← Back to Orders
           </Link>
           <div className="bg-red-100 text-red-700 p-6 rounded-lg">
@@ -296,7 +296,7 @@ export default function OrderDetailPage() {
 
                   return (
                     <div key={day.id} className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                      <h3 className="font-semibold text-green-600 mb-3">
+                      <h3 className="font-semibold text-latin-red mb-3">
                         {DAY_NAMES[day.dayOfWeek]}
                       </h3>
 
@@ -372,7 +372,7 @@ export default function OrderDetailPage() {
               )}
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="font-semibold text-gray-900">Total</span>
-                <span className="font-semibold text-green-600 text-lg">
+                <span className="font-semibold text-latin-red text-lg">
                   {formatCurrency(order.totalAmount)}
                 </span>
               </div>

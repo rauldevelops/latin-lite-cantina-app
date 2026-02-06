@@ -286,7 +286,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <Link href="/order" className="text-latin-orange hover:text-latin-red transition-colors text-sm">
+          <Link href="/order" className="text-latin-red hover:text-latin-orange transition-colors text-sm">
             &larr; Back to Order Builder
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mt-2">Checkout</h1>
@@ -310,7 +310,7 @@ export default function CheckoutPage() {
                   disabled={orderUpdating}
                   className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${
                     !isPickup
-                      ? "bg-latin-orange text-white"
+                      ? "bg-latin-red text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   } ${orderUpdating ? "opacity-50" : ""}`}
                 >
@@ -321,7 +321,7 @@ export default function CheckoutPage() {
                   disabled={orderUpdating}
                   className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${
                     isPickup
-                      ? "bg-latin-orange text-white"
+                      ? "bg-latin-red text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   } ${orderUpdating ? "opacity-50" : ""}`}
                 >
@@ -333,7 +333,7 @@ export default function CheckoutPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-gray-700 font-medium">Pickup Location</p>
                   <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
-                  <p className="text-latin-orange text-sm mt-2 font-medium">No delivery fee</p>
+                  <p className="text-latin-red text-sm mt-2 font-medium">No delivery fee</p>
                 </div>
               ) : (
                 <div>
@@ -349,7 +349,7 @@ export default function CheckoutPage() {
                               key={addr.id}
                               className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer ${
                                 selectedAddressId === addr.id
-                                  ? "border-latin-orange bg-orange-50"
+                                  ? "border-latin-red bg-orange-50"
                                   : "border-gray-200 hover:border-gray-300"
                               }`}
                             >
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
                                   </p>
                                 )}
                                 {addr.isDefault && (
-                                  <span className="text-xs text-latin-orange font-medium">Default</span>
+                                  <span className="text-xs text-latin-red font-medium">Default</span>
                                 )}
                               </div>
                             </label>
@@ -387,7 +387,7 @@ export default function CheckoutPage() {
                       {!showAddressForm ? (
                         <button
                           onClick={() => setShowAddressForm(true)}
-                          className="text-latin-orange hover:text-latin-red transition-colors text-sm font-medium"
+                          className="text-latin-red hover:text-latin-orange transition-colors text-sm font-medium"
                         >
                           + Add New Address
                         </button>
@@ -454,7 +454,7 @@ export default function CheckoutPage() {
                             <button
                               type="submit"
                               disabled={savingAddress}
-                              className="px-6 py-3 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+                              className="px-6 py-3 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
                             >
                               {savingAddress ? "SAVING..." : "SAVE ADDRESS"}
                             </button>
@@ -528,12 +528,12 @@ export default function CheckoutPage() {
                       </div>
                     ))}
                     {day.extraEntrees.map((e, i) => (
-                      <p key={`ee-${i}`} className="text-xs text-latin-orange ml-2">
+                      <p key={`ee-${i}`} className="text-xs text-latin-red ml-2">
                         Extra: {e.quantity}x {e.name}
                       </p>
                     ))}
                     {day.extraSides.map((s, i) => (
-                      <p key={`es-${i}`} className="text-xs text-latin-red ml-2">
+                      <p key={`es-${i}`} className="text-xs text-latin-orange ml-2">
                         Extra: {s.quantity}x {s.name}
                       </p>
                     ))}

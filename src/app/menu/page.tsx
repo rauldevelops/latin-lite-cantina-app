@@ -208,7 +208,7 @@ export default function MenuPage() {
                   onClick={() => setSelectedMenuIndex(index)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     selectedMenuIndex === index
-                      ? "bg-green-600 text-white"
+                      ? "bg-latin-red text-white"
                       : disabled
                       ? "text-gray-400 cursor-not-allowed"
                       : "text-gray-700 hover:bg-gray-100"
@@ -254,15 +254,15 @@ export default function MenuPage() {
             {stapleItems.filter(item => item.type === "ENTREE").length > 0 && (
               <div
                 className={`rounded-lg shadow ${
-                  weekDisabled ? "bg-gray-100 opacity-60" : "bg-green-50 border-2 border-green-200"
+                  weekDisabled ? "bg-gray-100 opacity-60" : "bg-orange-50 border-2 border-orange-200"
                 }`}
               >
                 <h3 className={`font-semibold border-b p-4 ${
-                  weekDisabled ? "text-gray-400 border-gray-200" : "text-green-800 border-green-200"
+                  weekDisabled ? "text-gray-400 border-gray-200" : "text-latin-red border-orange-200"
                 }`}>
                   Staples
                   <span className={`block text-xs font-normal ${
-                    weekDisabled ? "text-gray-400" : "text-green-600"
+                    weekDisabled ? "text-gray-400" : "text-latin-red"
                   }`}>
                     Available Daily
                   </span>

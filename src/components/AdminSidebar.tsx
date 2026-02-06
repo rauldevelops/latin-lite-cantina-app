@@ -84,9 +84,9 @@ export default function AdminSidebar() {
     <aside
       className={`${
         collapsed ? "w-16" : "w-64"
-      } bg-gray-900 flex-shrink-0 sticky top-0 h-screen overflow-y-auto transition-all duration-200`}
+      } bg-latin-charcoal flex-shrink-0 sticky top-0 h-screen overflow-y-auto transition-all duration-200`}
     >
-      <div className={`border-b border-gray-800 flex items-center ${collapsed ? "justify-center p-3" : "justify-between p-4"}`}>
+      <div className={`border-b border-gray-700 flex items-center ${collapsed ? "justify-center p-3" : "justify-between p-4"}`}>
         {!collapsed && (
           <Link href="/admin/orders" className="text-white font-bold text-lg truncate">
             Admin Dashboard
@@ -118,8 +118,8 @@ export default function AdminSidebar() {
               collapsed ? "justify-center px-2" : "gap-3 px-4"
             } py-2.5 rounded-lg text-sm font-medium transition-colors mb-1 ${
               isActive(item.href)
-                ? "bg-green-600 text-white"
-                : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                ? "bg-latin-red text-white"
+                : "text-gray-300 hover:bg-gray-700 hover:text-white"
             }`}
           >
             <span className="text-lg flex-shrink-0">{item.icon}</span>

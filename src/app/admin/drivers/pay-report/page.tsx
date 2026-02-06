@@ -117,14 +117,14 @@ export default function DriverPayReportPage() {
               <button
                 onClick={loadReport}
                 disabled={loading}
-                className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
               >
                 {loading ? "LOADING..." : "GENERATE REPORT"}
               </button>
               {report && (
                 <button
                   onClick={() => window.print()}
-                  className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+                  className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
                 >
                   PRINT REPORT
                 </button>

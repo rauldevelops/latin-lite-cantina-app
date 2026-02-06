@@ -53,7 +53,7 @@ export default function NewMenuItemPage() {
         <div className="mb-8">
           <Link
             href="/admin/menu-items"
-            className="text-latin-orange hover:text-latin-red transition-colors"
+            className="text-latin-red hover:text-latin-orange transition-colors"
           >
             ← Back to Menu Items
           </Link>
@@ -200,7 +200,7 @@ export default function NewMenuItemPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-2 px-4 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+              className="flex-1 py-2 px-4 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
             >
               {loading ? "CREATING..." : "CREATE MENU ITEM"}
             </button>

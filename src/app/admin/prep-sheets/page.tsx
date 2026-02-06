@@ -173,7 +173,7 @@ export default function PrepSheetsPage() {
                     onClick={() => setSelectedDay(day.num)}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       selectedDay === day.num
-                        ? "bg-latin-orange text-white"
+                        ? "bg-latin-red text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -186,7 +186,7 @@ export default function PrepSheetsPage() {
               <button
                 onClick={() => window.print()}
                 disabled={!prepSheet || prepSheet.items.length === 0}
-                className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
+                className="px-4 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
               >
                 PRINT PREP SHEET
               </button>

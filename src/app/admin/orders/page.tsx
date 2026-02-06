@@ -110,7 +110,7 @@ export default function AdminOrdersPage() {
           <div className="flex gap-2">
             <Link
               href="/admin/orders/create"
-              className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+              className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
             >
               Create Order
             </Link>
@@ -142,7 +142,7 @@ export default function AdminOrdersPage() {
             />
             <button
               type="submit"
-              className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+              className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
             >
               Search
             </button>
@@ -240,7 +240,7 @@ export default function AdminOrdersPage() {
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => router.push(`/admin/orders/${order.id}`)}
                   >
-                    <td className="px-6 py-4 text-sm font-mono text-latin-orange">
+                    <td className="px-6 py-4 text-sm font-mono text-latin-red">
                       {order.orderNumber}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">

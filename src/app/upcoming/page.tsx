@@ -128,9 +128,9 @@ export default function UpcomingMealsPage() {
           </div>
           <Link
             href="/order"
-            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700"
+            className="px-6 py-2 bg-latin-red text-white text-sm font-semibold rounded-full hover:bg-latin-orange uppercase transition-colors"
           >
-            Place New Order
+            PLACE NEW ORDER
           </Link>
         </div>
 
@@ -151,9 +151,9 @@ export default function UpcomingMealsPage() {
             </p>
             <Link
               href="/order"
-              className="inline-block px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
+              className="inline-block px-6 py-3 bg-latin-red text-white font-semibold rounded-full hover:bg-latin-orange uppercase transition-colors"
             >
-              Browse Menu & Order
+              BROWSE MENU & ORDER
             </Link>
           </div>
         ) : (
@@ -186,7 +186,7 @@ export default function UpcomingMealsPage() {
                         {formatDate(day.date)}
                       </span>
                       {isToday(day.date) && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-green-600 text-white rounded-full">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-latin-red text-white rounded-full">
                           Today
                         </span>
                       )}
@@ -206,7 +206,7 @@ export default function UpcomingMealsPage() {
                       <div className="flex items-center gap-3 mb-4">
                         <Link
                           href={`/orders/${meal.orderId}`}
-                          className="text-sm font-medium text-green-600 hover:text-green-700"
+                          className="text-sm font-medium text-latin-red hover:text-latin-orange transition-colors"
                         >
                           {meal.orderNumber}
                         </Link>
@@ -289,7 +289,7 @@ export default function UpcomingMealsPage() {
           <div className="mt-8 text-center">
             <Link
               href="/orders"
-              className="text-sm text-gray-600 hover:text-green-600"
+              className="text-sm text-gray-600 hover:text-latin-red transition-colors"
             >
               View all orders &rarr;
             </Link>

@@ -118,7 +118,7 @@ function ResetPasswordForm() {
             </p>
             <Link
               href="/forgot-password"
-              className="text-latin-orange hover:text-latin-red transition-colors font-medium"
+              className="text-latin-red hover:text-latin-orange transition-colors font-medium"
             >
               Request a new reset link
             </Link>
@@ -178,7 +178,7 @@ function ResetPasswordForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-6 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
+            className="w-full py-3 px-6 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors disabled:opacity-50"
           >
             {loading ? "RESETTING..." : "RESET PASSWORD"}
           </button>
@@ -186,7 +186,7 @@ function ResetPasswordForm() {
 
         <p className="text-center text-sm text-gray-700">
           Remember your password?{" "}
-          <Link href="/login" className="text-latin-orange hover:text-latin-red transition-colors">
+          <Link href="/login" className="text-latin-red hover:text-latin-orange transition-colors">
             Sign In
           </Link>
         </p>
@@ -201,7 +201,7 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-latin-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <div className="w-8 h-8 border-4 border-latin-red border-t-transparent rounded-full animate-spin mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>

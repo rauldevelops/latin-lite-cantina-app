@@ -160,7 +160,7 @@ export default function DeliveryManifestPage() {
             </Link>
             <Link
               href={`/admin/delivery-labels?weeklyMenuId=${selectedMenuId}&dayOfWeek=${selectedDay}${selectedDriverId ? `&driverId=${selectedDriverId}` : ""}`}
-              className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+              className="px-4 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
             >
               PRINT LABELS
             </Link>
@@ -193,7 +193,7 @@ export default function DeliveryManifestPage() {
                 onClick={() => setSelectedDay(d.num)}
                 className={`px-3 py-2 rounded-md text-sm ${
                   selectedDay === d.num
-                    ? "bg-latin-orange text-white"
+                    ? "bg-latin-red text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >

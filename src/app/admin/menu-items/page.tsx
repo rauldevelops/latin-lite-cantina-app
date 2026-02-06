@@ -122,7 +122,7 @@ export default function MenuItemsPage() {
             </Link>
             <Link
               href="/admin/menu-items/new"
-              className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+              className="px-4 py-2 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
             >
               ADD NEW ITEM
             </Link>
@@ -213,7 +213,7 @@ export default function MenuItemsPage() {
                     <td className="px-6 py-4 text-right space-x-2">
                       <Link
                         href={`/admin/menu-items/${item.id}`}
-                        className="text-latin-orange hover:text-latin-red transition-colors"
+                        className="text-latin-red hover:text-latin-orange transition-colors"
                       >
                         Edit
                       </Link>

@@ -308,7 +308,7 @@ export default function AdminOrderDetailPage() {
           );
         })}
         {extras.map((item) => (
-          <p key={item.id} className="text-sm text-latin-orange ml-1">
+          <p key={item.id} className="text-sm text-latin-red ml-1">
             Extra: {item.quantity > 1 ? `${item.quantity}x ` : ""}
             {item.menuItem.name} (${Number(item.unitPrice).toFixed(2)} ea)
           </p>
@@ -328,7 +328,7 @@ export default function AdminOrderDetailPage() {
         <div className="mb-6">
           <Link
             href="/admin/orders"
-            className="text-latin-orange hover:text-latin-red transition-colors text-sm"
+            className="text-latin-red hover:text-latin-orange transition-colors text-sm"
           >
             &larr; Back to Orders
           </Link>
@@ -356,7 +356,7 @@ export default function AdminOrderDetailPage() {
           {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
             <Link
               href={`/admin/orders/${order.id}/edit`}
-              className="ml-auto px-6 py-2 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
+              className="ml-auto px-6 py-2 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
             >
               Edit Order
             </Link>
@@ -628,7 +628,7 @@ export default function AdminOrderDetailPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="w-full py-2 px-6 bg-latin-orange text-white rounded-full hover:bg-latin-red disabled:opacity-50 text-sm uppercase font-semibold transition-colors"
+                className="w-full py-2 px-6 bg-latin-red text-white rounded-full hover:bg-latin-orange disabled:opacity-50 text-sm uppercase font-semibold transition-colors"
               >
                 {saving ? "SAVING..." : "SAVE CHANGES"}
               </button>

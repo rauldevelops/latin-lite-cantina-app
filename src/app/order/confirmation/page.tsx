@@ -192,7 +192,7 @@ function OrderConfirmationContent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">{error || "Order not found"}</p>
-          <Link href="/order" className="text-latin-orange hover:text-latin-red transition-colors">
+          <Link href="/order" className="text-latin-red hover:text-latin-orange transition-colors">
             &larr; Back to Order
           </Link>
         </div>
@@ -312,7 +312,7 @@ function OrderConfirmationContent() {
           <div className="mt-8 space-y-3">
             <Link
               href="/order"
-              className="block w-full bg-latin-orange text-white py-3 rounded-full font-semibold uppercase hover:bg-latin-red transition-colors"
+              className="block w-full bg-latin-red text-white py-3 rounded-full font-semibold uppercase hover:bg-latin-orange transition-colors"
             >
               PLACE ANOTHER ORDER
             </Link>

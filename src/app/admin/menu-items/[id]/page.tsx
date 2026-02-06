@@ -112,7 +112,7 @@ export default function EditMenuItemPage() {
         <div className="mb-8">
           <Link
             href="/admin/menu-items"
-            className="text-latin-orange hover:text-latin-red transition-colors"
+            className="text-latin-red hover:text-latin-orange transition-colors"
           >
             ← Back to Menu Items
           </Link>
@@ -260,7 +260,7 @@ export default function EditMenuItemPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-2 px-6 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors"
+              className="flex-1 py-2 px-6 bg-latin-red text-white rounded-full hover:bg-latin-orange uppercase font-semibold disabled:opacity-50 transition-colors"
             >
               {saving ? "SAVING..." : "SAVE CHANGES"}
             </button>

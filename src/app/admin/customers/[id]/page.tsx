@@ -248,7 +248,7 @@ export default function AdminCustomerDetailPage() {
         <div className="mb-6">
           <Link
             href="/admin/customers"
-            className="text-latin-orange hover:text-latin-red transition-colors text-sm"
+            className="text-latin-red hover:text-latin-orange transition-colors text-sm"
           >
             &larr; Back to Customers
           </Link>
@@ -261,7 +261,7 @@ export default function AdminCustomerDetailPage() {
           </h1>
           <Link
             href={`/admin/orders/create?customerId=${customer.id}`}
-            className="px-3 py-1 text-sm bg-latin-orange text-white rounded-md hover:bg-blue-700"
+            className="px-3 py-1 text-sm bg-latin-red text-white rounded-md hover:bg-blue-700"
           >
             CREATE ORDER
           </Link>
@@ -516,7 +516,7 @@ export default function AdminCustomerDetailPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="w-full py-2 px-4 bg-latin-orange text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                className="w-full py-2 px-4 bg-latin-red text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -566,7 +566,7 @@ export default function AdminCustomerDetailPage() {
                             router.push(`/admin/orders/${order.id}`)
                           }
                         >
-                          <td className="px-4 py-3 text-sm font-mono text-latin-orange">
+                          <td className="px-4 py-3 text-sm font-mono text-latin-red">
                             {order.orderNumber}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
