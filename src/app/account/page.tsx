@@ -420,16 +420,16 @@ export default function AccountPage() {
           <button
             type="submit"
             disabled={savingAddress}
-            className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50"
+            className="px-4 py-2 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors"
           >
-            {savingAddress ? "Saving..." : isEdit ? "Update Address" : "Save Address"}
+            {savingAddress ? "SAVING..." : isEdit ? "UPDATE ADDRESS" : "SAVE ADDRESS"}
           </button>
           <button
             type="button"
             onClick={cancelAddressForm}
-            className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
           >
-            Cancel
+            CANCEL
           </button>
         </div>
       </form>
@@ -482,7 +482,7 @@ export default function AccountPage() {
               {!editingProfile && (
                 <button
                   onClick={startEditProfile}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  className="text-sm text-latin-orange hover:text-latin-red font-medium transition-colors"
                 >
                   Edit
                 </button>
@@ -536,16 +536,16 @@ export default function AccountPage() {
                   <button
                     type="submit"
                     disabled={savingProfile}
-                    className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors"
                   >
-                    {savingProfile ? "Saving..." : "Save Changes"}
+                    {savingProfile ? "SAVING..." : "SAVE CHANGES"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setEditingProfile(false)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+                    className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
                   >
-                    Cancel
+                    CANCEL
                   </button>
                 </div>
               </form>
@@ -582,7 +582,7 @@ export default function AccountPage() {
               {!showNewAddressForm && !editingAddressId && (
                 <button
                   onClick={startNewAddress}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                  className="text-sm text-latin-orange hover:text-latin-red font-medium transition-colors"
                 >
                   + Add Address
                 </button>
@@ -602,7 +602,7 @@ export default function AccountPage() {
                     <div
                       className={`border rounded-lg p-4 ${
                         addr.isDefault
-                          ? "border-green-500 bg-green-50"
+                          ? "border-orange-500 bg-orange-50"
                           : "border-gray-200"
                       }`}
                     >
@@ -621,21 +621,21 @@ export default function AccountPage() {
                             </p>
                           )}
                           {addr.isDefault && (
-                            <span className="text-xs text-green-600 font-medium">Default</span>
+                            <span className="text-xs text-latin-orange font-medium">Default</span>
                           )}
                         </div>
                         <div className="flex gap-2 ml-4 shrink-0">
                           {!addr.isDefault && (
                             <button
                               onClick={() => handleSetDefault(addr.id)}
-                              className="text-xs text-gray-500 hover:text-green-600"
+                              className="text-xs text-gray-500 hover:text-latin-orange transition-colors"
                             >
                               Set Default
                             </button>
                           )}
                           <button
                             onClick={() => startEditAddress(addr)}
-                            className="text-xs text-gray-500 hover:text-green-600"
+                            className="text-xs text-gray-500 hover:text-latin-orange transition-colors"
                           >
                             Edit
                           </button>
@@ -709,9 +709,9 @@ export default function AccountPage() {
               <button
                 type="submit"
                 disabled={changingPassword}
-                className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:opacity-50"
+                className="px-4 py-2 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors"
               >
-                {changingPassword ? "Changing..." : "Change Password"}
+                {changingPassword ? "CHANGING..." : "CHANGE PASSWORD"}
               </button>
             </form>
           </div>

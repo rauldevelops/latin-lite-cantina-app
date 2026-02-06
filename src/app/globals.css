@@ -6,9 +6,20 @@
 }
 
 @theme inline {
+  /* Existing */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+
+  /* Brand colors */
+  --color-latin-orange: #faab34;
+  --color-latin-red: #e63945;
+  --color-latin-charcoal: #3b3b3b;
+
+  /* Font families */
+  --font-poppins: var(--font-poppins);
+  --font-source-sans: var(--font-source-sans);
+  --font-sans: var(--font-source-sans);
+  --font-heading: var(--font-poppins);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -22,7 +33,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-source-sans), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins), sans-serif;
+  font-weight: 700;
 }
 
 @media print {

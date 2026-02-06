@@ -172,7 +172,7 @@ export default function WeeklyMenuBuilderPage() {
         <div className="mb-8">
           <Link
             href="/admin/weekly-menus"
-            className="text-blue-600 hover:text-blue-800"
+            className="text-latin-orange hover:text-latin-red transition-colors"
           >
             ← Back to Weekly Menus
           </Link>
@@ -204,7 +204,7 @@ export default function WeeklyMenuBuilderPage() {
                   key={day.num}
                   className={`bg-white shadow rounded-lg p-4 cursor-pointer border-2 ${
                     selectedDay === day.num
-                      ? "border-blue-500"
+                      ? "border-latin-orange"
                       : "border-transparent"
                   }`}
                   onClick={() => setSelectedDay(day.num)}
@@ -292,7 +292,7 @@ export default function WeeklyMenuBuilderPage() {
                         <button
                           key={item.id}
                           onClick={() => addItemToDay(item.id, "ENTREE")}
-                          className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-blue-50 rounded text-gray-900"
+                          className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-orange-50 rounded text-gray-900"
                         >
                           {item.name}
                         </button>
@@ -311,7 +311,7 @@ export default function WeeklyMenuBuilderPage() {
                         <button
                           key={item.id}
                           onClick={() => addItemToDay(item.id, "SIDE")}
-                          className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-blue-50 rounded text-gray-900"
+                          className="w-full text-left px-3 py-2 text-sm bg-gray-50 hover:bg-orange-50 rounded text-gray-900"
                         >
                           {item.name}
                         </button>
@@ -323,7 +323,7 @@ export default function WeeklyMenuBuilderPage() {
               {allMenuItems.length === 0 && (
                 <p className="text-sm text-gray-500">
                   No menu items available.{" "}
-                  <Link href="/admin/menu-items/new" className="text-blue-600">
+                  <Link href="/admin/menu-items/new" className="text-latin-orange">
                     Create some first
                   </Link>
                 </p>

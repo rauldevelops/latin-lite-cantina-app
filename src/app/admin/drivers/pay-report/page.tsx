@@ -95,7 +95,7 @@ export default function DriverPayReportPage() {
               href="/admin/drivers"
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
             >
-              Back to Drivers
+              BACK TO DRIVERS
             </Link>
           </div>
 
@@ -117,16 +117,16 @@ export default function DriverPayReportPage() {
               <button
                 onClick={loadReport}
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
               >
-                {loading ? "Loading..." : "Generate Report"}
+                {loading ? "LOADING..." : "GENERATE REPORT"}
               </button>
               {report && (
                 <button
                   onClick={() => window.print()}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
                 >
-                  Print Report
+                  PRINT REPORT
                 </button>
               )}
             </div>

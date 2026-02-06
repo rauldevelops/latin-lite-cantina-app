@@ -1,6 +1,134 @@
-# Latin Lite Admin UI Style Guide
+# Latin Lite Style Guide
 
-This document defines the consistent styling patterns used across the admin interface.
+This document defines the consistent styling patterns used across the Latin Lite application (customer portal and admin interface).
+
+---
+
+## Brand Identity
+
+### Tagline
+**"Eat healthy, Feel great!"**
+
+### Brand Voice & Messaging
+
+**Tone:** Direct, motivational, and accessible. Use clear, action-oriented language that inspires healthy lifestyle choices without overly technical jargon.
+
+**Voice Characteristics:**
+- Straightforward and honest
+- Encouraging and positive
+- Health-focused but not preachy
+- Friendly and approachable
+- Professional but warm
+
+**Writing Guidelines:**
+- Use active voice and action verbs
+- Keep sentences concise and clear
+- Emphasize benefits over features
+- Avoid technical jargon unless necessary
+- Maintain an optimistic, wellness-focused tone
+
+---
+
+## Color Palette
+
+### Brand Colors
+
+**Tailwind Configuration:**
+```js
+// Add to tailwind.config.js
+colors: {
+  'latin-orange': '#faab34',
+  'latin-red': '#e63945',
+  'latin-charcoal': '#3b3b3b',
+}
+```
+
+**Primary Colors:**
+- **Latin Orange**: `#faab34` (Tailwind: `latin-orange` or `orange-400`) - Primary brand color, main CTAs
+- **Latin Red**: `#e63945` (Tailwind: `latin-red` or `red-500`) - Secondary accent, hover states, emphasis
+- **Charcoal**: `#3b3b3b` (Tailwind: `latin-charcoal` or `gray-800`) - Primary text color
+- **White**: `#FFFFFF` - Primary background
+- **Light Gray**: `#F5F5F5` (Tailwind: `gray-50`) - Secondary background
+
+### Neutral Palette
+- Gray 50: `#F9FAFB` - Page backgrounds
+- Gray 100: `#F3F4F6` - Card backgrounds, subtle dividers
+- Gray 200: `#E5E7EB` - Borders, disabled states
+- Gray 300: `#D1D5DB` - Borders, inactive elements
+- Gray 500: `#6B7280` - Secondary text
+- Gray 600: `#4B5563` - Tertiary text
+- Gray 700: `#374151` - Labels, form text
+- Gray 900: `#111827` - Dark text (use sparingly)
+
+### Status Colors
+- **Success/Active**: `bg-green-100 text-green-800`
+- **Error/Danger**: `bg-red-100 text-red-800`
+- **Warning**: `bg-yellow-100 text-yellow-800`
+- **Info/Neutral**: `bg-gray-100 text-gray-600`
+- **Special (Purple/Dessert)**: `bg-purple-100 text-purple-800`
+- **Special (Amber/Soup)**: `bg-amber-100 text-amber-800`
+
+---
+
+## Typography
+
+### Font Families
+
+**Headings:** Poppins (sans-serif, bold weight)
+```tsx
+className="font-['Poppins'] font-bold"
+```
+
+**Body Text:** Source Sans Pro (sans-serif, regular and bold)
+```tsx
+className="font-['Source_Sans_Pro']"
+```
+
+**Implementation:**
+Add to your Next.js layout or `globals.css`:
+```tsx
+import { Poppins, Source_Sans_Pro } from 'next/font/google'
+
+const poppins = Poppins({
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-poppins'
+})
+
+const sourceSansPro = Source_Sans_Pro({
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-source-sans'
+})
+```
+
+### Page Headers
+```tsx
+<h1 className="text-2xl md:text-3xl font-bold text-latin-charcoal font-['Poppins']">
+  Page Title
+</h1>
+```
+
+### Section Headers
+```tsx
+<h2 className="text-lg font-semibold mb-4 text-latin-charcoal font-['Poppins']">
+  Section Title
+</h2>
+```
+
+### Body Text
+```tsx
+<p className="text-latin-charcoal font-['Source_Sans_Pro']">
+  Body content
+</p>
+```
+
+**Text Color Hierarchy:**
+- Primary: `text-latin-charcoal` (#3b3b3b)
+- Secondary: `text-gray-600`
+- Muted: `text-gray-500`
+
+---
 
 ## Layout & Containers
 
@@ -25,26 +153,62 @@ This document defines the consistent styling patterns used across the admin inte
 </div>
 ```
 
-## Typography
+---
 
-### Page Headers
+## Buttons
+
+**Universal Button Style:** Pill-shaped with uppercase text
+
+### Primary Action
 ```tsx
-<h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-  Page Title
-</h1>
+<button className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors">
+  PRIMARY ACTION
+</button>
 ```
 
-### Section Headers
+### Secondary Action
 ```tsx
-<h2 className="text-lg font-semibold mb-4">
-  Section Title
-</h2>
+<button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
+  SECONDARY ACTION
+</button>
 ```
 
-### Body Text
-- Primary: `text-gray-900`
-- Secondary: `text-gray-600`
-- Muted: `text-gray-500`
+### Success Action
+```tsx
+<button className="px-6 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 uppercase font-semibold transition-colors">
+  SUCCESS ACTION
+</button>
+```
+
+### Danger Action
+```tsx
+<button className="px-6 py-2 bg-latin-red text-white rounded-full hover:bg-red-700 uppercase font-semibold transition-colors">
+  DELETE
+</button>
+```
+
+### Quantity Buttons (+ / -)
+```tsx
+<button className="w-6 h-6 rounded border border-gray-400 bg-white text-gray-700 font-semibold disabled:opacity-30 hover:bg-gray-100">
+  +
+</button>
+```
+
+### Text Links
+```tsx
+<a className="text-latin-orange hover:text-latin-red transition-colors">
+  Link Text
+</a>
+```
+
+### Back Links
+```tsx
+<Link href="/path" className="text-latin-orange hover:text-latin-red transition-colors">
+  ← Back to Page
+</Link>
+```
+
+---
 
 ## Forms
 
@@ -52,13 +216,13 @@ This document defines the consistent styling patterns used across the admin inte
 ```tsx
 <input
   type="text"
-  className="px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+  className="px-3 py-2 border border-gray-300 rounded-md text-latin-charcoal"
 />
 ```
 
 For full-width inputs:
 ```tsx
-className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+className="w-full px-3 py-2 border border-gray-300 rounded-md text-latin-charcoal"
 ```
 
 ### Labels
@@ -72,13 +236,13 @@ className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
 ```tsx
 <textarea
   rows={3}
-  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+  className="w-full px-3 py-2 border border-gray-300 rounded-md text-latin-charcoal"
 />
 ```
 
 ### Select Dropdowns
 ```tsx
-<select className="px-3 py-2 border border-gray-300 rounded-md text-gray-900">
+<select className="px-3 py-2 border border-gray-300 rounded-md text-latin-charcoal">
   <option>Option 1</option>
 </select>
 ```
@@ -88,7 +252,7 @@ className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
 <div className="flex items-center gap-2">
   <input
     type="checkbox"
-    className="h-4 w-4 rounded border-gray-300"
+    className="h-4 w-4 rounded border-gray-300 text-latin-orange focus:ring-latin-orange"
   />
   <label className="text-sm font-medium text-gray-700">
     Checkbox Label
@@ -96,56 +260,7 @@ className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
 </div>
 ```
 
-## Buttons
-
-### Primary Action
-```tsx
-<button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
-  Primary Action
-</button>
-```
-
-### Secondary Action
-```tsx
-<button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-  Secondary Action
-</button>
-```
-
-### Success Action
-```tsx
-<button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-  Success Action
-</button>
-```
-
-### Danger Action
-```tsx
-<button className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-  Delete
-</button>
-```
-
-### Quantity Buttons (+ / -)
-```tsx
-<button className="w-6 h-6 rounded border border-gray-400 bg-white text-gray-700 font-semibold disabled:opacity-30 hover:bg-gray-100">
-  +
-</button>
-```
-
-### Text Links
-```tsx
-<a className="text-blue-600 hover:text-blue-800">
-  Link Text
-</a>
-```
-
-### Back Links
-```tsx
-<Link href="/path" className="text-blue-600 hover:text-blue-800">
-  ← Back to Page
-</Link>
-```
+---
 
 ## Tables
 
@@ -162,7 +277,7 @@ className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
 ```tsx
 <thead className="bg-gray-50">
   <tr>
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
       Column Name
     </th>
   </tr>
@@ -171,7 +286,7 @@ className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
 
 For right-aligned headers:
 ```tsx
-<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
   Actions
 </th>
 ```
@@ -180,7 +295,7 @@ For right-aligned headers:
 ```tsx
 <tbody className="bg-white divide-y divide-gray-200">
   <tr>
-    <td className="px-6 py-4 text-gray-900">
+    <td className="px-6 py-4 text-latin-charcoal">
       Cell content
     </td>
   </tr>
@@ -196,11 +311,13 @@ For right-aligned headers:
 </tr>
 ```
 
+---
+
 ## Badges & Status Indicators
 
 ### Status Badge Base
 ```tsx
-<span className="px-2 py-1 text-xs rounded-full">
+<span className="px-2 py-1 text-xs rounded-full font-semibold">
   Status
 </span>
 ```
@@ -212,6 +329,8 @@ For right-aligned headers:
 - **Info/Neutral**: `bg-gray-100 text-gray-600`
 - **Special (Purple/Dessert)**: `bg-purple-100 text-purple-800`
 - **Special (Amber/Soup)**: `bg-amber-100 text-amber-800`
+
+---
 
 ## Alerts & Messages
 
@@ -236,19 +355,23 @@ For right-aligned headers:
 </div>
 ```
 
+---
+
 ## Loading States
 
 ### Full Page Loading
 ```tsx
 <div className="min-h-screen flex items-center justify-center">
-  <p>Loading...</p>
+  <p className="text-latin-charcoal">Loading...</p>
 </div>
 ```
 
 ### Inline Loading
 ```tsx
-<div className="text-center">Loading...</div>
+<div className="text-center text-gray-600">Loading...</div>
 ```
+
+---
 
 ## Spacing
 
@@ -257,13 +380,18 @@ For right-aligned headers:
 - Card padding: `p-4` or `p-6`
 - Margin bottom for sections: `mb-4`, `mb-6`, or `mb-8`
 - Gap between flex items: `gap-2`, `gap-3`, or `gap-4`
+- Generous whitespace: Use padding liberally to create breathing room
+
+---
 
 ## Responsive Design
 
 ### Header Layout
 ```tsx
 <div className="flex flex-col gap-4 mb-8">
-  <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Title</h1>
+  <h1 className="text-2xl md:text-3xl font-bold text-latin-charcoal font-['Poppins']">
+    Title
+  </h1>
   <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
     {/* Responsive controls */}
   </div>
@@ -277,18 +405,22 @@ For right-aligned headers:
 </div>
 ```
 
+---
+
 ## Action Bars
 
 ### Top Action Bar
 ```tsx
 <div className="flex justify-between items-center mb-8">
-  <h1 className="text-3xl font-bold text-gray-900">Page Title</h1>
+  <h1 className="text-3xl font-bold text-latin-charcoal font-['Poppins']">
+    Page Title
+  </h1>
   <div className="flex gap-3">
-    <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-      Secondary
+    <button className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
+      SECONDARY
     </button>
-    <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-      Primary
+    <button className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors">
+      PRIMARY
     </button>
   </div>
 </div>
@@ -299,38 +431,88 @@ For right-aligned headers:
 <div className="flex gap-4 pt-4">
   <button
     type="submit"
-    className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+    className="flex-1 py-2 px-6 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors"
   >
-    Save Changes
+    SAVE CHANGES
   </button>
   <Link
     href="/back"
-    className="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-center"
+    className="flex-1 py-2 px-6 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 text-center uppercase font-semibold transition-colors"
   >
-    Cancel
+    CANCEL
   </Link>
 </div>
 ```
 
-## Color Palette
-
-### Primary Colors
-- Blue (Primary Action): `blue-600`, `blue-700`, `blue-800`
-- Gray (Neutral): `gray-50`, `gray-100`, `gray-200`, `gray-300`, `gray-500`, `gray-600`, `gray-700`, `gray-900`
-
-### Status Colors
-- Green (Success): `green-100`, `green-600`, `green-700`, `green-800`
-- Red (Danger): `red-100`, `red-600`, `red-700`, `red-800`
-- Yellow (Warning): `yellow-100`, `yellow-800`
-- Purple (Special): `purple-100`, `purple-600`, `purple-800`
-- Amber (Special): `amber-100`, `amber-600`, `amber-800`
+---
 
 ## Consistent Patterns
 
-1. **Always use responsive padding**: `p-4 md:p-8` on page containers
-2. **Consistent border radius**: `rounded-md` for most elements, `rounded-lg` for cards
-3. **Shadow hierarchy**: `shadow` for cards/tables, no shadow for nested elements
-4. **Text contrast**: Ensure `text-gray-900` on light backgrounds for readability
-5. **Hover states**: Always include hover states for interactive elements
-6. **Disabled states**: Use `disabled:opacity-50` for disabled buttons
-7. **Focus states**: Browser default focus rings are acceptable
+1. **Brand Colors**: Always use Latin Orange (#faab34) for primary actions and Latin Red (#e63945) for hover states
+2. **Pill-Shaped Buttons**: All buttons use `rounded-full` with uppercase text
+3. **Typography**: Poppins for headings, Source Sans Pro for body text
+4. **Responsive Padding**: `p-4 md:p-8` on page containers
+5. **Rounded Corners**: `rounded-lg` for cards, `rounded-md` for form inputs
+6. **Shadow Hierarchy**: `shadow` for cards/tables, no shadow for nested elements
+7. **Text Contrast**: Use `text-latin-charcoal` for primary text on light backgrounds
+8. **Hover States**: Always include hover states with `transition-colors` for smooth transitions
+9. **Disabled States**: Use `disabled:opacity-50` for disabled buttons
+10. **Generous Whitespace**: Embrace padding and spacing for a clean, breathable layout
+
+---
+
+## Implementation Notes
+
+### Tailwind Config
+Add custom colors to your `tailwind.config.js`:
+
+```js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        'latin-orange': '#faab34',
+        'latin-red': '#e63945',
+        'latin-charcoal': '#3b3b3b',
+      },
+      fontFamily: {
+        poppins: ['Poppins', 'sans-serif'],
+        source: ['Source Sans Pro', 'sans-serif'],
+      },
+    },
+  },
+}
+```
+
+### Font Loading
+In your root layout (`app/layout.tsx`):
+
+```tsx
+import { Poppins, Source_Sans_Pro } from 'next/font/google'
+
+const poppins = Poppins({
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-poppins'
+})
+
+const sourceSansPro = Source_Sans_Pro({
+  weight: ['400', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-source-sans'
+})
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={`${poppins.variable} ${sourceSansPro.variable}`}>
+      <body className="font-source">{children}</body>
+    </html>
+  )
+}
+```
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** February 6, 2026
+**Based on:** latinlite.com brand guidelines

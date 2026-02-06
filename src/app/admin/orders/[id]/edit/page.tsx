@@ -572,7 +572,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
       <div className="min-h-screen bg-gray-50 p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error || "Order not found"}</div>
-          <Link href="/admin/orders" className="text-blue-600 hover:text-blue-800">
+          <Link href="/admin/orders" className="text-latin-orange hover:text-latin-red transition-colors">
             ← Back to orders
           </Link>
         </div>
@@ -587,7 +587,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
           <div className="bg-yellow-100 text-yellow-800 p-4 rounded mb-4">
             This order cannot be edited because it has been {order.status.toLowerCase()}.
           </div>
-          <Link href={`/admin/orders/${order.id}`} className="text-blue-600 hover:text-blue-800">
+          <Link href={`/admin/orders/${order.id}`} className="text-latin-orange hover:text-latin-red transition-colors">
             ← Back to order
           </Link>
         </div>
@@ -603,7 +603,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link href={`/admin/orders/${order.id}`} className="text-blue-600 hover:text-blue-800">
+          <Link href={`/admin/orders/${order.id}`} className="text-latin-orange hover:text-latin-red transition-colors">
             ← Back to order
           </Link>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-4">
@@ -637,7 +637,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     {!hasSelection ? (
                       <button
                         onClick={() => addCompleta(day.num)}
-                        className="text-sm text-blue-600 hover:text-blue-800"
+                        className="text-sm text-latin-orange hover:text-latin-red transition-colors"
                       >
                         + Add day
                       </button>
@@ -741,7 +741,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                         })}
                         <button
                           onClick={() => addCompleta(day.num)}
-                          className="text-sm text-blue-600 hover:text-blue-800"
+                          className="text-sm text-latin-orange hover:text-latin-red transition-colors"
                         >
                           + Add another completa
                         </button>
@@ -936,15 +936,15 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
             <button
               onClick={handleSubmit}
               disabled={submitting || selectedDayCount < MIN_DAYS_PER_ORDER}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 disabled:opacity-50"
+              className="w-full px-6 py-3 bg-latin-orange text-white rounded-full font-semibold hover:bg-latin-red disabled:opacity-50 uppercase transition-colors"
             >
-              {submitting ? "Saving..." : "Save Changes"}
+              {submitting ? "SAVING..." : "SAVE CHANGES"}
             </button>
             <Link
               href={`/admin/orders/${order.id}`}
               className="block w-full text-center px-4 py-3 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300"
             >
-              Cancel
+              CANCEL
             </Link>
           </div>
         </div>

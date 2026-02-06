@@ -130,9 +130,9 @@ export default function PrepSheetsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Prep Sheets</h1>
             <Link
               href="/admin/orders"
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
             >
-              Orders
+              ORDERS
             </Link>
           </div>
 
@@ -173,7 +173,7 @@ export default function PrepSheetsPage() {
                     onClick={() => setSelectedDay(day.num)}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       selectedDay === day.num
-                        ? "bg-green-600 text-white"
+                        ? "bg-latin-orange text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
@@ -186,9 +186,9 @@ export default function PrepSheetsPage() {
               <button
                 onClick={() => window.print()}
                 disabled={!prepSheet || prepSheet.items.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
               >
-                Print Prep Sheet
+                PRINT PREP SHEET
               </button>
             </div>
           )}

@@ -89,7 +89,7 @@ function LoginContent() {
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
             />
             <div className="mt-1 text-right">
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+              <Link href="/forgot-password" className="text-sm text-latin-orange hover:text-latin-red transition-colors">
                 Forgot Password?
               </Link>
             </div>
@@ -98,15 +98,15 @@ function LoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="w-full py-3 px-6 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold disabled:opacity-50 transition-colors"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "SIGNING IN..." : "SIGN IN"}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-700">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">
+          <Link href="/register" className="text-latin-orange hover:text-latin-red transition-colors font-medium">
             Register
           </Link>
         </p>

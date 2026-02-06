@@ -177,7 +177,7 @@ function CardPaymentForm({
         type="button"
         onClick={handlePayment}
         disabled={!stripe || isProcessing}
-        className="w-full bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-latin-orange text-white py-3 rounded-full font-semibold hover:bg-latin-red disabled:opacity-50 disabled:cursor-not-allowed uppercase transition-colors"
       >
         {isProcessing ? "Processing Payment..." : "Process Card Payment"}
       </button>
@@ -793,7 +793,7 @@ function AdminCreateOrderContent() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <Link href="/admin/orders" className="text-blue-600 hover:text-blue-800 text-sm">
+          <Link href="/admin/orders" className="text-latin-orange hover:text-latin-red transition-colors text-sm">
             &larr; Back to Orders
           </Link>
         </div>
@@ -807,7 +807,7 @@ function AdminCreateOrderContent() {
               key={i}
               className={`flex-1 text-center py-2 rounded-md text-sm font-medium ${
                 step === i + 1
-                  ? "bg-green-600 text-white"
+                  ? "bg-latin-orange text-white"
                   : step > i + 1
                   ? "bg-green-100 text-green-800"
                   : "bg-gray-100 text-gray-500"
@@ -872,9 +872,9 @@ function AdminCreateOrderContent() {
                     <button
                       type="submit"
                       disabled={searching}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
                     >
-                      {searching ? "..." : "Search"}
+                      {searching ? "..." : "SEARCH"}
                     </button>
                   </form>
                 </div>
@@ -906,7 +906,7 @@ function AdminCreateOrderContent() {
                 {!showNewCustomerForm ? (
                   <button
                     onClick={() => setShowNewCustomerForm(true)}
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm text-latin-orange hover:text-latin-red transition-colors"
                   >
                     + New Customer
                   </button>
@@ -1018,9 +1018,9 @@ function AdminCreateOrderContent() {
                     <button
                       onClick={createNewCustomer}
                       disabled={creatingCustomer || !newCustomer.firstName || !newCustomer.lastName}
-                      className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                      className="w-full py-2 px-4 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
                     >
-                      {creatingCustomer ? "Creating..." : "Create & Select Customer"}
+                      {creatingCustomer ? "CREATING..." : "CREATE & SELECT CUSTOMER"}
                     </button>
                   </div>
                 )}
@@ -1037,9 +1037,9 @@ function AdminCreateOrderContent() {
                 setStep(2);
               }}
               disabled={!selectedCustomer}
-              className="ml-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              className="ml-2 px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
             >
-              Next: Build Order
+              NEXT: BUILD ORDER
             </button>
           </div>
         )}
@@ -1085,7 +1085,7 @@ function AdminCreateOrderContent() {
                             <h3 className="text-lg font-semibold text-gray-900">{day.name}</h3>
                             <button
                               onClick={() => addCompleta(day.num)}
-                              className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                              className="px-3 py-1 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
                             >
                               + Add Completa
                             </button>
@@ -1111,7 +1111,7 @@ function AdminCreateOrderContent() {
                                       {isCompletaComplete(completa) && (
                                         <button
                                           onClick={() => toggleCompletaExpanded(day.num, cIndex)}
-                                          className="text-blue-600 text-sm hover:text-blue-800"
+                                          className="text-latin-orange text-sm hover:text-blue-800"
                                         >
                                           {isCompletaExpanded(day.num, cIndex) ? "Collapse" : "Edit"}
                                         </button>
@@ -1129,7 +1129,7 @@ function AdminCreateOrderContent() {
                                   {(completa.entree || completa.sides.length > 0) && (
                                     <div className="flex flex-wrap gap-2 mb-3">
                                       {completa.entree && (
-                                        <span className="px-3 py-1.5 rounded-md text-sm bg-green-600 text-white">
+                                        <span className="px-3 py-1.5 rounded-full text-sm bg-latin-orange text-white uppercase font-semibold">
                                           {completa.entree.menuItem.name}
                                         </span>
                                       )}
@@ -1169,7 +1169,7 @@ function AdminCreateOrderContent() {
                                               }
                                               className={`px-3 py-1.5 rounded-md text-sm ${
                                                 completa.entree?.id === item.id
-                                                  ? "bg-green-600 text-white"
+                                                  ? "bg-latin-orange text-white"
                                                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                               }`}
                                             >
@@ -1234,7 +1234,7 @@ function AdminCreateOrderContent() {
                                     {daySel.extraEntrees.length === 0 && (
                                       <button
                                         onClick={() => toggleExpandedExtras(day.num, "entrees")}
-                                        className="text-xs text-blue-600 hover:text-blue-800"
+                                        className="text-xs text-latin-orange hover:text-latin-red transition-colors"
                                       >
                                         Hide
                                       </button>
@@ -1293,7 +1293,7 @@ function AdminCreateOrderContent() {
                                 {daySel.extraEntrees.length === 0 && !expandedExtras[day.num]?.entrees && getEntreesForDay(day.num).length > 0 && (
                                   <button
                                     onClick={() => toggleExpandedExtras(day.num, "entrees")}
-                                    className="px-3 py-1 text-xs text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50"
+                                    className="px-3 py-1 text-xs text-latin-orange border border-blue-300 rounded-md hover:bg-blue-50"
                                   >
                                     + Extra Entrees
                                   </button>
@@ -1350,7 +1350,7 @@ function AdminCreateOrderContent() {
                                   </div>
                                 ))}
                                 {daySel.extraEntrees.map((e, i) => (
-                                  <p key={`ee-${i}`} className="text-xs text-blue-600 ml-2">Extra: {e.quantity}x {e.item.menuItem.name}</p>
+                                  <p key={`ee-${i}`} className="text-xs text-latin-orange ml-2">Extra: {e.quantity}x {e.item.menuItem.name}</p>
                                 ))}
                                 {daySel.extraSides.map((s, i) => (
                                   <p key={`es-${i}`} className="text-xs text-orange-600 ml-2">Extra: {s.quantity}x {s.name}</p>
@@ -1365,8 +1365,8 @@ function AdminCreateOrderContent() {
                 </div>
 
                 <div className="flex gap-3 mt-6">
-                  <button onClick={() => { setError(""); setStep(1); }} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                    Back
+                  <button onClick={() => { setError(""); setStep(1); }} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
+                    BACK
                   </button>
                   <button
                     onClick={() => {
@@ -1374,9 +1374,9 @@ function AdminCreateOrderContent() {
                       if (validateStep2()) setStep(3);
                     }}
                     disabled={orderableDays.length === 0}
-                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                    className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
                   >
-                    Next: Delivery & Payment
+                    NEXT: DELIVERY & PAYMENT
                   </button>
                 </div>
               </>
@@ -1393,15 +1393,15 @@ function AdminCreateOrderContent() {
               <div className="flex gap-3 mb-4">
                 <button
                   onClick={() => setIsPickup(false)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium ${!isPickup ? "bg-green-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${!isPickup ? "bg-latin-orange text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                 >
-                  Delivery
+                  DELIVERY
                 </button>
                 <button
                   onClick={() => { setIsPickup(true); setSelectedAddressId(null); }}
-                  className={`px-4 py-2 rounded-md text-sm font-medium ${isPickup ? "bg-green-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold uppercase transition-colors ${isPickup ? "bg-latin-orange text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
                 >
-                  Pickup
+                  PICKUP
                 </button>
               </div>
 
@@ -1483,9 +1483,9 @@ function AdminCreateOrderContent() {
                           type="button"
                           onClick={createPaymentIntent}
                           disabled={creatingPaymentIntent || !pricing}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                          className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 text-sm"
                         >
-                          {creatingPaymentIntent ? "Initializing..." : `Enter Card for $${totals.total.toFixed(2)}`}
+                          {creatingPaymentIntent ? "INITIALIZING..." : `ENTER CARD FOR $${totals.total.toFixed(2)}`}
                         </button>
                       </div>
                     ) : (
@@ -1551,7 +1551,7 @@ function AdminCreateOrderContent() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={() => { setError(""); setStep(2); }} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+              <button onClick={() => { setError(""); setStep(2); }} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
                 Back
               </button>
               <button
@@ -1559,9 +1559,9 @@ function AdminCreateOrderContent() {
                   setError("");
                   if (validateStep3()) setStep(4);
                 }}
-                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
               >
-                Next: Review
+                NEXT: REVIEW
               </button>
             </div>
           </div>
@@ -1603,7 +1603,7 @@ function AdminCreateOrderContent() {
                         </div>
                       ))}
                       {daySel.extraEntrees.map((e, i) => (
-                        <p key={`ee-${i}`} className="text-sm text-blue-600 ml-3">
+                        <p key={`ee-${i}`} className="text-sm text-latin-orange ml-3">
                           Extra: {e.quantity}x {e.item.menuItem.name}
                         </p>
                       ))}
@@ -1668,15 +1668,15 @@ function AdminCreateOrderContent() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={() => { setError(""); setStep(3); }} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+              <button onClick={() => { setError(""); setStep(3); }} className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
                 Back
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                className="px-6 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
               >
-                {submitting ? "Placing Order..." : "Place Order"}
+                {submitting ? "PLACING ORDER..." : "PLACE ORDER"}
               </button>
             </div>
           </div>

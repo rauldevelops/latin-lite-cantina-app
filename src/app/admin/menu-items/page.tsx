@@ -116,15 +116,15 @@ export default function MenuItemsPage() {
           <div className="flex gap-3">
             <Link
               href="/admin/pricing"
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
             >
-              Pricing Settings
+              PRICING SETTINGS
             </Link>
             <Link
               href="/admin/menu-items/new"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
             >
-              Add New Item
+              ADD NEW ITEM
             </Link>
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function MenuItemsPage() {
                     <td className="px-6 py-4 text-right space-x-2">
                       <Link
                         href={`/admin/menu-items/${item.id}`}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-latin-orange hover:text-latin-red transition-colors"
                       >
                         Edit
                       </Link>

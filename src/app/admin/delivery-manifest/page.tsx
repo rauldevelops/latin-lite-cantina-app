@@ -155,14 +155,14 @@ export default function DeliveryManifestPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Delivery Manifest</h1>
           <div className="flex gap-3">
-            <Link href="/admin/drivers" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-              Manage Drivers
+            <Link href="/admin/drivers" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
+              MANAGE DRIVERS
             </Link>
             <Link
               href={`/admin/delivery-labels?weeklyMenuId=${selectedMenuId}&dayOfWeek=${selectedDay}${selectedDriverId ? `&driverId=${selectedDriverId}` : ""}`}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
             >
-              Print Labels
+              PRINT LABELS
             </Link>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function DeliveryManifestPage() {
                 onClick={() => setSelectedDay(d.num)}
                 className={`px-3 py-2 rounded-md text-sm ${
                   selectedDay === d.num
-                    ? "bg-blue-600 text-white"
+                    ? "bg-latin-orange text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -217,7 +217,7 @@ export default function DeliveryManifestPage() {
             onClick={() => window.print()}
             className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 text-sm"
           >
-            Print Manifest
+            PRINT MANIFEST
           </button>
         </div>
       </div>

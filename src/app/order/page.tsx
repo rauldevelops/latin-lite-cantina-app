@@ -692,7 +692,7 @@ export default function OrderPage() {
                   }}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     selectedMenuIndex === index
-                      ? "bg-green-600 text-white"
+                      ? "bg-latin-orange text-white"
                       : disabled
                       ? "text-gray-400 cursor-not-allowed"
                       : "text-gray-700 hover:bg-gray-100"
@@ -745,9 +745,9 @@ export default function OrderPage() {
                       {!dayDisabled && (
                         <button
                           onClick={() => addCompleta(day.num)}
-                          className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                          className="px-4 py-2 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
                         >
-                          + Add Completa
+                          + ADD COMPLETA
                         </button>
                       )}
                     </div>
@@ -760,7 +760,7 @@ export default function OrderPage() {
                             key={cIndex}
                             className={`border rounded-lg p-3 mb-3 ${
                               isCompletaComplete(completa)
-                                ? "border-green-300 bg-green-50"
+                                ? "border-orange-300 bg-orange-50"
                                 : "border-gray-200"
                             }`}
                           >
@@ -768,7 +768,7 @@ export default function OrderPage() {
                               <span className="font-medium text-gray-800">
                                 Completa #{cIndex + 1}
                                 {isCompletaComplete(completa) && (
-                                  <span className="ml-2 text-green-600 text-sm">
+                                  <span className="ml-2 text-latin-orange text-sm">
                                     ✓
                                   </span>
                                 )}
@@ -777,7 +777,7 @@ export default function OrderPage() {
                                 {isCompletaComplete(completa) && (
                                   <button
                                     onClick={() => toggleCompletaExpanded(day.num, cIndex)}
-                                    className="text-blue-600 text-sm hover:text-blue-800"
+                                    className="text-latin-orange text-sm hover:text-latin-red transition-colors"
                                   >
                                     {isCompletaExpanded(day.num, cIndex) ? "Collapse" : "Edit"}
                                   </button>
@@ -795,7 +795,7 @@ export default function OrderPage() {
                             {(completa.entree || completa.sides.length > 0) && (
                               <div className="flex flex-wrap gap-2 mb-3">
                                 {completa.entree && (
-                                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-green-600 text-white">
+                                  <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm bg-latin-orange text-white">
                                     {completa.entree.menuItem.name}
                                   </span>
                                 )}
@@ -843,9 +843,9 @@ export default function OrderPage() {
                                         completa.entree?.id === item.id ? null : item
                                       )
                                     }
-                                    className={`px-3 py-1.5 rounded-md text-sm ${
+                                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
                                       completa.entree?.id === item.id
-                                        ? "bg-green-600 text-white"
+                                        ? "bg-latin-orange text-white"
                                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                     }`}
                                   >
@@ -932,7 +932,7 @@ export default function OrderPage() {
                               {daySel.extraEntrees.length === 0 && (
                                 <button
                                   onClick={() => toggleExpandedExtras(day.num, "entrees")}
-                                  className="text-xs text-blue-600 hover:text-blue-800"
+                                  className="text-xs text-latin-orange hover:text-latin-red transition-colors"
                                 >
                                   Hide
                                 </button>
@@ -1021,7 +1021,7 @@ export default function OrderPage() {
                           {daySel.extraEntrees.length === 0 && !expandedExtras[day.num]?.entrees && (
                             <button
                               onClick={() => toggleExpandedExtras(day.num, "entrees")}
-                              className="px-3 py-1 text-xs text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50"
+                              className="px-3 py-1 text-xs text-latin-orange border border-orange-300 rounded-md hover:bg-orange-50 transition-colors"
                             >
                               + Extra Entrees
                             </button>
@@ -1084,7 +1084,7 @@ export default function OrderPage() {
                             </div>
                           ))}
                           {daySel.extraEntrees.map((e, i) => (
-                            <p key={`ee-${i}`} className="text-sm text-blue-600 ml-2">
+                            <p key={`ee-${i}`} className="text-sm text-latin-orange ml-2">
                               Extra: {e.quantity}x {e.item.menuItem.name}
                             </p>
                           ))}
@@ -1102,9 +1102,9 @@ export default function OrderPage() {
                 <button
                   onClick={handleSubmitOrder}
                   disabled={orderableDays.length === 0}
-                  className="w-full mt-4 bg-green-600 text-white py-3 rounded-md font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-4 bg-latin-orange text-white py-3 rounded-full font-semibold hover:bg-latin-red uppercase disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Continue to Checkout
+                  CONTINUE TO CHECKOUT
                 </button>
               </div>
             </div>

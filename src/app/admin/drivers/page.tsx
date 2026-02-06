@@ -100,11 +100,11 @@ export default function DriversPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Drivers</h1>
           <div className="flex gap-3">
-            <Link href="/admin/drivers/pay-report" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-              Pay Report
+            <Link href="/admin/drivers/pay-report" className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors">
+              PAY REPORT
             </Link>
-            <Link href="/admin/delivery-manifest" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-              Delivery Manifest
+            <Link href="/admin/delivery-manifest" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
+              DELIVERY MANIFEST
             </Link>
           </div>
         </div>
@@ -126,9 +126,9 @@ export default function DriversPage() {
           <button
             type="submit"
             disabled={creating || !newName.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
           >
-            {creating ? "..." : "Add Driver"}
+            {creating ? "..." : "ADD DRIVER"}
           </button>
         </form>
 
@@ -165,7 +165,7 @@ export default function DriversPage() {
                             className="px-2 py-1 border border-gray-300 rounded text-gray-900 text-sm"
                             autoFocus
                           />
-                          <button type="submit" className="text-sm text-blue-600 hover:text-blue-800">Save</button>
+                          <button type="submit" className="text-sm text-latin-orange hover:text-latin-red transition-colors">Save</button>
                           <button type="button" onClick={() => setEditingId(null)} className="text-sm text-gray-500 hover:text-gray-700">Cancel</button>
                         </form>
                       ) : (
@@ -187,7 +187,7 @@ export default function DriversPage() {
                         <>
                           <button
                             onClick={() => { setEditingId(d.id); setEditName(d.name); }}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-latin-orange hover:text-latin-red transition-colors"
                           >
                             Rename
                           </button>

@@ -308,7 +308,7 @@ export default function AdminOrderDetailPage() {
           );
         })}
         {extras.map((item) => (
-          <p key={item.id} className="text-sm text-blue-600 ml-1">
+          <p key={item.id} className="text-sm text-latin-orange ml-1">
             Extra: {item.quantity > 1 ? `${item.quantity}x ` : ""}
             {item.menuItem.name} (${Number(item.unitPrice).toFixed(2)} ea)
           </p>
@@ -328,7 +328,7 @@ export default function AdminOrderDetailPage() {
         <div className="mb-6">
           <Link
             href="/admin/orders"
-            className="text-blue-600 hover:text-blue-800 text-sm"
+            className="text-latin-orange hover:text-latin-red transition-colors text-sm"
           >
             &larr; Back to Orders
           </Link>
@@ -356,7 +356,7 @@ export default function AdminOrderDetailPage() {
           {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
             <Link
               href={`/admin/orders/${order.id}/edit`}
-              className="ml-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+              className="ml-auto px-6 py-2 bg-latin-orange text-white text-sm rounded-full hover:bg-latin-red uppercase font-semibold transition-colors"
             >
               Edit Order
             </Link>
@@ -628,14 +628,14 @@ export default function AdminOrderDetailPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !hasChanges}
-                className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                className="w-full py-2 px-6 bg-latin-orange text-white rounded-full hover:bg-latin-red disabled:opacity-50 text-sm uppercase font-semibold transition-colors"
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving ? "SAVING..." : "SAVE CHANGES"}
               </button>
 
               <button
                 onClick={handleDelete}
-                className="w-full py-2 px-4 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+                className="w-full py-2 px-6 bg-red-600 text-white rounded-full hover:bg-red-700 text-sm uppercase font-semibold transition-colors"
               >
                 Delete Order
               </button>

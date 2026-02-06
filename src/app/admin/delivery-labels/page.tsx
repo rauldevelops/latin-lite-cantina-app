@@ -191,14 +191,14 @@ function DeliveryLabelsContent() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Delivery Labels</h1>
             <div className="flex gap-3">
-              <Link href="/admin/delivery-manifest" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                Back to Manifest
+              <Link href="/admin/delivery-manifest" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors">
+                BACK TO MANIFEST
               </Link>
               <button
                 onClick={() => window.print()}
-                className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900"
+                className="px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-900 uppercase font-semibold transition-colors"
               >
-                Print Labels
+                PRINT LABELS
               </button>
             </div>
           </div>
@@ -229,7 +229,7 @@ function DeliveryLabelsContent() {
                   onClick={() => setSelectedDay(d.num)}
                   className={`px-3 py-2 rounded-md text-sm ${
                     selectedDay === d.num
-                      ? "bg-blue-600 text-white"
+                      ? "bg-latin-orange text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >

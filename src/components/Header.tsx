@@ -22,16 +22,16 @@ export default function Header() {
   }
 
   function navLinkClass(active: boolean) {
-    return `text-sm font-medium ${
-      active ? "text-green-600" : "text-gray-700 hover:text-green-600"
+    return `text-sm font-medium transition-colors ${
+      active ? "text-latin-orange" : "text-gray-700 hover:text-latin-orange"
     }`;
   }
 
   function mobileNavLinkClass(active: boolean) {
-    return `block px-3 py-2 rounded-md text-base font-medium ${
+    return `block px-3 py-2 rounded-md text-base font-medium transition-colors ${
       active
-        ? "text-green-600 bg-green-50"
-        : "text-gray-700 hover:text-green-600 hover:bg-gray-50"
+        ? "text-latin-orange bg-orange-50"
+        : "text-gray-700 hover:text-latin-orange hover:bg-gray-50"
     }`;
   }
 
@@ -42,7 +42,7 @@ export default function Header() {
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-lg font-bold text-green-400">
+              <span className="text-lg font-bold text-latin-orange">
                 Latin Lite Cantina
               </span>
               <span className="text-gray-500">|</span>
@@ -84,7 +84,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo / Brand */}
           <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold text-green-600">
+            <span className="text-xl font-bold text-latin-orange">
               Latin Lite Cantina
             </span>
           </Link>
@@ -111,7 +111,7 @@ export default function Header() {
               </>
             )}
             {isAdmin && (
-              <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-green-600">
+              <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-latin-orange transition-colors">
                 Admin
               </Link>
             )}
@@ -138,15 +138,15 @@ export default function Header() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-green-600"
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-latin-orange transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-latin-orange rounded-full hover:bg-latin-red uppercase transition-colors"
                 >
-                  Sign Up
+                  SIGN UP
                 </Link>
               </div>
             )}
@@ -155,7 +155,7 @@ export default function Header() {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-md text-gray-700 hover:text-green-600 hover:bg-gray-100"
+            className="md:hidden p-2 rounded-md text-gray-700 hover:text-latin-orange hover:bg-gray-100 transition-colors"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
@@ -247,16 +247,16 @@ export default function Header() {
                 <Link
                   href="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="flex-1 text-center px-3 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 uppercase transition-colors"
                 >
-                  Login
+                  LOGIN
                 </Link>
                 <Link
                   href="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex-1 text-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                  className="flex-1 text-center px-3 py-2 text-sm font-semibold text-white bg-latin-orange rounded-full hover:bg-latin-red uppercase transition-colors"
                 >
-                  Sign Up
+                  SIGN UP
                 </Link>
               </div>
             )}

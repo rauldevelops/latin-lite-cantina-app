@@ -187,9 +187,9 @@ export default function WeeklyMenusPage() {
                 createWeeklyMenu(input.value);
               }}
               disabled={creating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 w-full sm:w-auto"
+              className="px-4 py-2 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50 w-full sm:w-auto"
             >
-              {creating ? "Creating..." : "Create Week"}
+              {creating ? "CREATING..." : "CREATE WEEK"}
             </button>
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function WeeklyMenusPage() {
                     <td className="px-6 py-4 text-right space-x-2">
                       <Link
                         href={`/admin/weekly-menus/${menu.id}`}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-latin-orange hover:text-latin-red transition-colors"
                       >
                         Edit
                       </Link>
@@ -269,7 +269,7 @@ export default function WeeklyMenusPage() {
         <div className="mt-8">
           <Link
             href="/admin/menu-items"
-            className="text-blue-600 hover:text-blue-800"
+            className="text-latin-orange hover:text-latin-red transition-colors"
           >
             ← Back to Menu Items
           </Link>

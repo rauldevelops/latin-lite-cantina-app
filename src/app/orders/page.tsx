@@ -135,7 +135,7 @@ export default function OrdersPage() {
           <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
           <Link
             href="/order"
-            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700"
+            className="px-4 py-2 bg-latin-orange text-white text-sm font-semibold rounded-full hover:bg-latin-red uppercase transition-colors"
           >
             Place New Order
           </Link>
@@ -156,9 +156,9 @@ export default function OrdersPage() {
             </p>
             <Link
               href="/order"
-              className="inline-block px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
+              className="inline-block px-6 py-3 bg-latin-orange text-white font-semibold rounded-full hover:bg-latin-red uppercase transition-colors"
             >
-              Browse Menu & Order
+              BROWSE MENU & ORDER
             </Link>
           </div>
         ) : (
@@ -167,7 +167,7 @@ export default function OrdersPage() {
               <Link
                 key={order.id}
                 href={`/orders/${order.id}`}
-                className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow"
+                className="block bg-white rounded-lg shadow hover:shadow-md transition-all"
               >
                 <div className="p-6">
                   <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
@@ -194,7 +194,7 @@ export default function OrdersPage() {
                       <p className="text-sm text-gray-500">
                         Ordered on {formatDate(order.createdAt)}
                       </p>
-                      <p className="text-sm font-medium text-green-600 mt-1">
+                      <p className="text-sm font-medium text-latin-orange mt-1">
                         Week of {formatDate(order.weeklyMenu.weekStartDate)}
                       </p>
                     </div>
@@ -220,7 +220,7 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <span className="text-sm text-green-600 font-medium">
+                    <span className="text-sm text-latin-orange font-medium transition-colors">
                       View Details →
                     </span>
                   </div>

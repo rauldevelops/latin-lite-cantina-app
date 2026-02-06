@@ -104,7 +104,7 @@ export default function PricingSettingsPage() {
         <div className="mb-8">
           <Link
             href="/admin/menu-items"
-            className="text-blue-600 hover:text-blue-800"
+            className="text-latin-orange hover:text-latin-red transition-colors"
           >
             ← Back to Menu Items
           </Link>
@@ -231,9 +231,9 @@ export default function PricingSettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="w-full py-2 px-4 bg-latin-orange text-white rounded-full hover:bg-latin-red uppercase font-semibold transition-colors disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Pricing"}
+            {saving ? "SAVING..." : "SAVE PRICING"}
           </button>
         </form>
       </div>
