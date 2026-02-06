@@ -53,6 +53,17 @@ type OrderSelections = {
   [dayOfWeek: number]: DaySelection;
 };
 
+// Checkout data structure (saved to sessionStorage)
+type CheckoutOrderDay = {
+  dayOfWeek: number;
+  completas: {
+    entreeId: string;
+    sides: { menuItemId: string; quantity: number }[];
+  }[];
+  extraEntrees: { menuItemId: string; quantity: number }[];
+  extraSides: { menuItemId: string; quantity: number }[];
+};
+
 const DAYS = [
   { num: 1, name: "Monday" },
   { num: 2, name: "Tuesday" },
@@ -82,6 +93,98 @@ function getDessertCount(sides: SideSelection[]): number {
 
 function getSoupCount(sides: SideSelection[]): number {
   return sides.filter((s) => s.isSoup).reduce((sum, s) => sum + s.quantity, 0);
+}
+
+// Restore OrderSelections from checkout data
+function restoreSelectionsFromCheckoutData(
+  orderDays: CheckoutOrderDay[],
+  menu: WeeklyMenu,
+  stapleItems: MenuItem[]
+): OrderSelections {
+  const result: OrderSelections = {};
+
+  // Helper to find WeeklyMenuItem by menuItemId
+  function findWeeklyMenuItem(menuItemId: string, dayOfWeek: number): WeeklyMenuItem | null {
+    // Check if it's a staple (available all days)
+    const staple = stapleItems.find((item) => item.id === menuItemId);
+    if (staple) {
+      return {
+        id: `staple-${staple.id}`,
+        dayOfWeek: dayOfWeek,
+        menuItem: staple,
+      };
+    }
+
+    // Check weekly menu items
+    const weeklyItem = menu.menuItems.find(
+      (item) => item.menuItem.id === menuItemId && (item.dayOfWeek === dayOfWeek || item.dayOfWeek === 0)
+    );
+    return weeklyItem || null;
+  }
+
+  for (const day of orderDays) {
+    const dayOfWeek = day.dayOfWeek;
+    const daySelection: DaySelection = {
+      completas: [],
+      extraEntrees: [],
+      extraSides: [],
+    };
+
+    // Restore completas
+    for (const completaData of day.completas || []) {
+      const entreeItem = findWeeklyMenuItem(completaData.entreeId, dayOfWeek);
+      const sides: SideSelection[] = [];
+
+      for (const sideData of completaData.sides || []) {
+        const sideItem = findWeeklyMenuItem(sideData.menuItemId, dayOfWeek);
+        if (sideItem) {
+          sides.push({
+            weeklyMenuItemId: sideItem.id,
+            menuItemId: sideItem.menuItem.id,
+            name: sideItem.menuItem.name,
+            isDessert: sideItem.menuItem.isDessert,
+            isSoup: sideItem.menuItem.isSoup,
+            quantity: sideData.quantity,
+          });
+        }
+      }
+
+      daySelection.completas.push({
+        entree: entreeItem,
+        sides: sides,
+      });
+    }
+
+    // Restore extra entrees
+    for (const extraData of day.extraEntrees || []) {
+      const item = findWeeklyMenuItem(extraData.menuItemId, dayOfWeek);
+      if (item) {
+        daySelection.extraEntrees.push({
+          item: item,
+          quantity: extraData.quantity,
+        });
+      }
+    }
+
+    // Restore extra sides
+    for (const extraData of day.extraSides || []) {
+      const item = findWeeklyMenuItem(extraData.menuItemId, dayOfWeek);
+      if (item) {
+        daySelection.extraSides.push({
+          weeklyMenuItemId: item.id,
+          menuItemId: item.menuItem.id,
+          name: item.menuItem.name,
+          isDessert: item.menuItem.isDessert,
+          isSoup: item.menuItem.isSoup,
+          quantity: extraData.quantity,
+        });
+      }
+    }
+
+    result[dayOfWeek] = daySelection;
+  }
+
+  return result;
 }
 
 export default function OrderPage() {
@@ -120,13 +223,38 @@ export default function OrderPage() {
         setMenus(data.weeklyMenus);
         setStapleItems(data.stapleItems || []);
 
-        const now = new Date();
-        const currentDay = now.getDay();
-        if (currentDay >= 3 && data.weeklyMenus.length > 1) {
-          const firstMenuMonday = new Date(data.weeklyMenus[0].weekStartDate);
-          const currentMonday = getCurrentMonday();
-          if (firstMenuMonday.getTime() === currentMonday.getTime()) {
-            setSelectedMenuIndex(1);
+        // Try to restore order from sessionStorage
+        const savedOrder = sessionStorage.getItem("checkoutOrderData");
+        if (savedOrder) {
+          try {
+            const parsed = JSON.parse(savedOrder);
+            const menuIndex = data.weeklyMenus.findIndex(
+              (m: WeeklyMenu) => m.id === parsed.weeklyMenuId
+            );
+
+            if (menuIndex >= 0) {
+              setSelectedMenuIndex(menuIndex);
+              // Restore selections after menus are loaded
+              const restored = restoreSelectionsFromCheckoutData(
+                parsed.orderDays,
+                data.weeklyMenus[menuIndex],
+                data.stapleItems || []
+              );
+              setSelections(restored);
+            }
+          } catch (err) {
+            console.error("Failed to restore order from sessionStorage:", err);
+          }
+        } else {
+          // No saved order - use default menu selection logic
+          const now = new Date();
+          const currentDay = now.getDay();
+          if (currentDay >= 3 && data.weeklyMenus.length > 1) {
+            const firstMenuMonday = new Date(data.weeklyMenus[0].weekStartDate);
+            const currentMonday = getCurrentMonday();
+            if (firstMenuMonday.getTime() === currentMonday.getTime()) {
+              setSelectedMenuIndex(1);
+            }
           }
         }
       } catch (err) {

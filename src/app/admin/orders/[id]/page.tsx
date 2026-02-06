@@ -353,6 +353,14 @@ export default function AdminOrderDetailPage() {
           >
             {formatStatus(order.paymentStatus)}
           </span>
+          {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
+            <Link
+              href={`/admin/orders/${order.id}/edit`}
+              className="ml-auto px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+            >
+              Edit Order
+            </Link>
+          )}
         </div>
 
         {refundSuccess && (

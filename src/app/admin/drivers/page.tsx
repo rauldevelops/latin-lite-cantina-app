@@ -100,6 +100,9 @@ export default function DriversPage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Drivers</h1>
           <div className="flex gap-3">
+            <Link href="/admin/drivers/pay-report" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+              Pay Report
+            </Link>
             <Link href="/admin/delivery-manifest" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
               Delivery Manifest
             </Link>
