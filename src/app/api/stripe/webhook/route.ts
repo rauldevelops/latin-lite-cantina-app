@@ -3,6 +3,11 @@ import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
+import { syncContactToLoops } from "@/lib/loops/contacts";
+import {
+  sendOrderCompletedEvent,
+  sendFirstOrderEvent,
+} from "@/lib/loops/events";
 import Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -74,6 +79,87 @@ export async function POST(request: Request) {
             console.log(`Order confirmation email sent for ${orderId}`);
           } else {
             console.error(`Failed to send confirmation email for ${orderId}:`, emailResult.error);
+          }
+
+          // Loops integration: track order events and update user stats
+          try {
+            const order = await prisma.order.findUnique({
+              where: { id: orderId },
+              include: {
+                customer: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        email: true,
+                        firstName: true,
+                        firstOrderAt: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            if (order?.customer?.user) {
+              const user = order.customer.user;
+              const isFirstOrder = !user.firstOrderAt;
+
+              // Update user order stats
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  firstOrderAt: isFirstOrder ? new Date() : undefined,
+                  lastOrderAt: new Date(),
+                  orderCount: { increment: 1 },
+                  preferredMethod: order.isPickup ? "pickup" : "delivery",
+                },
+              });
+
+              // Mark cart session as converted
+              await prisma.cartSession.updateMany({
+                where: {
+                  userId: user.id,
+                  weeklyMenuId: order.weeklyMenuId,
+                  convertedAt: null,
+                },
+                data: { convertedAt: new Date() },
+              });
+
+              // Send Loops events (non-blocking)
+              if (user.email) {
+                const totalAmount = order.totalAmount.toString();
+
+                if (isFirstOrder) {
+                  sendFirstOrderEvent(
+                    user.email,
+                    user.firstName,
+                    order.orderNumber,
+                    totalAmount
+                  ).catch((err) =>
+                    console.error("Failed to send first_order event:", err)
+                  );
+                }
+
+                sendOrderCompletedEvent(
+                  user.email,
+                  user.firstName,
+                  order.orderNumber,
+                  totalAmount,
+                  order.isPickup
+                ).catch((err) =>
+                  console.error("Failed to send order_completed event:", err)
+                );
+
+                // Sync updated contact to Loops
+                syncContactToLoops(user.id).catch((err) =>
+                  console.error("Failed to sync contact to Loops:", err)
+                );
+              }
+            }
+          } catch (loopsError) {
+            console.error("Failed to process Loops integration:", loopsError);
+            // Don't fail the webhook for Loops errors
           }
         } catch (dbError) {
           console.error(`Failed to update order ${orderId}:`, dbError);

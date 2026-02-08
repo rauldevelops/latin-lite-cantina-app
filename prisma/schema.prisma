@@ -66,6 +66,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Loops email automation fields
+  loopsContactId  String?   // Loops contact ID for reference
+  firstOrderAt    DateTime? // Track when user placed first order
+  lastOrderAt     DateTime? // Track last order date for reactivation
+  orderCount      Int       @default(0) // Total order count
+  preferredMethod String?   // "pickup" or "delivery" based on order history
+
   // Auth relations
   accounts      Account[]
   sessions      Session[]
@@ -76,6 +83,9 @@ model User {
 
   // Staff-specific (for tracking who created orders)
   createdOrders Order[]   @relation("CreatedBy")
+
+  // Cart sessions for abandoned cart tracking
+  cartSessions  CartSession[]
 
   @@index([email])
   @@index([role])
@@ -208,10 +218,11 @@ model WeeklyMenu {
   publishedAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   menuItems     WeeklyMenuItem[]
   orders        Order[]
-  
+  cartSessions  CartSession[]
+
   @@unique([weekStartDate])
   @@index([weekStartDate])
   @@index([isPublished])
@@ -367,4 +378,19 @@ model DashboardSnapshot {
   @@index([snapshotDate])
   @@index([snapshotType])
   @@unique([snapshotDate, snapshotType])
+}
+
+// Cart session for abandoned cart tracking
+model CartSession {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weeklyMenuId String
+  weeklyMenu   WeeklyMenu @relation(fields: [weeklyMenuId], references: [id])
+  startedAt    DateTime   @default(now())
+  convertedAt  DateTime?  // Set when order is placed
+  emailSentAt  DateTime?  // Track if abandoned cart event sent
+
+  @@index([userId])
+  @@index([startedAt])
 }

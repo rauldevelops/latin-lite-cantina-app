@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { syncContactToLoops } from "@/lib/loops/contacts";
+import { sendUserCreatedEvent } from "@/lib/loops/events";
 
 export async function POST(request: Request) {
   try {
@@ -42,6 +44,14 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Sync contact to Loops and send welcome event (non-blocking)
+    syncContactToLoops(user.id).catch((err) =>
+      console.error("Failed to sync contact to Loops:", err)
+    );
+    sendUserCreatedEvent(email, firstName).catch((err) =>
+      console.error("Failed to send user_created event:", err)
+    );
 
     return NextResponse.json(
       { message: "User created successfully", userId: user.id },

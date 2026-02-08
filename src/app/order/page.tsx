@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 type MenuItem = {
@@ -197,6 +197,25 @@ export default function OrderPage() {
   const [error, setError] = useState("");
   const [expandedCompletas, setExpandedCompletas] = useState<Set<string>>(new Set());
   const [expandedExtras, setExpandedExtras] = useState<Record<number, { entrees: boolean; sides: boolean }>>({});
+  const [cartSessionRecorded, setCartSessionRecorded] = useState(false);
+
+  // Record cart session for abandoned cart tracking (only once per session)
+  const recordCartSession = useCallback(async () => {
+    if (cartSessionRecorded) return;
+    const menu = menus[selectedMenuIndex];
+    if (!menu) return;
+
+    setCartSessionRecorded(true);
+    try {
+      await fetch("/api/cart/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weeklyMenuId: menu.id }),
+      });
+    } catch (err) {
+      console.error("Failed to record cart session:", err);
+    }
+  }, [cartSessionRecorded, menus, selectedMenuIndex]);
 
   function toggleExpandedExtras(dayOfWeek: number, type: "entrees" | "sides") {
     setExpandedExtras((prev) => ({
@@ -348,6 +367,7 @@ export default function OrderPage() {
 
   // Completa management
   function addCompleta(dayOfWeek: number) {
+    recordCartSession(); // Track for abandoned cart
     setSelections((prev) => {
       const day = getDaySelectionFromPrev(prev, dayOfWeek);
       return {
@@ -457,6 +477,7 @@ export default function OrderPage() {
 
   // Extra entrees
   function updateExtraEntree(dayOfWeek: number, item: WeeklyMenuItem, delta: number) {
+    if (delta > 0) recordCartSession(); // Track for abandoned cart
     setSelections((prev) => {
       const day = getDaySelectionFromPrev(prev, dayOfWeek);
       const extras = [...day.extraEntrees];
@@ -479,6 +500,7 @@ export default function OrderPage() {
 
   // Extra sides
   function updateExtraSide(dayOfWeek: number, weeklyMenuItem: WeeklyMenuItem, delta: number) {
+    if (delta > 0) recordCartSession(); // Track for abandoned cart
     setSelections((prev) => {
       const day = getDaySelectionFromPrev(prev, dayOfWeek);
       const extras = [...day.extraSides];

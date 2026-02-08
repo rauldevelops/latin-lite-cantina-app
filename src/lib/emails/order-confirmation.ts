@@ -1,4 +1,4 @@
-import { resend } from "@/lib/resend";
+import { loops } from "@/lib/loops";
 import { prisma } from "@/lib/prisma";
 
 const DAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -161,99 +161,55 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       `;
     }
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "Latin Lite Cantina <onboarding@resend.dev>";
-
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f3f4f6;">
-          <div style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Latin Lite Cantina</h1>
-            <p style="color: #bbf7d0; margin: 8px 0 0 0; font-size: 14px;">Order Confirmation</p>
-          </div>
-
-          <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
-            <p style="margin-top: 0; font-size: 18px;">Hi ${customerName},</p>
-            <p style="color: #16a34a; font-weight: 600; font-size: 16px;">Your order has been confirmed!</p>
-
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px; margin: 20px 0;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="color: #6b7280; font-size: 13px; padding: 4px 0;">Order Number</td>
-                  <td style="color: #111827; font-weight: 600; text-align: right; padding: 4px 0;">${order.orderNumber}</td>
-                </tr>
-                <tr>
-                  <td style="color: #6b7280; font-size: 13px; padding: 4px 0;">Order Date</td>
-                  <td style="color: #111827; text-align: right; padding: 4px 0;">${formatDate(order.createdAt)}</td>
-                </tr>
-                <tr>
-                  <td style="color: #6b7280; font-size: 13px; padding: 4px 0;">Week Of</td>
-                  <td style="color: #111827; text-align: right; padding: 4px 0;">${formatDate(order.weeklyMenu.weekStartDate)}</td>
-                </tr>
-                <tr>
-                  <td style="color: #6b7280; font-size: 13px; padding: 4px 0;">Type</td>
-                  <td style="color: #111827; text-align: right; padding: 4px 0;">${order.isPickup ? "Pickup" : "Delivery"}</td>
-                </tr>
-              </table>
-            </div>
-
-            <h2 style="color: #111827; font-size: 18px; margin: 24px 0 16px 0; border-bottom: 2px solid #16a34a; padding-bottom: 8px;">
-              Your Order
-            </h2>
-
-            ${orderItemsHtml}
-
-            <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 24px;">
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="color: #6b7280; padding: 6px 0;">Subtotal</td>
-                  <td style="color: #374151; text-align: right; padding: 6px 0;">${formatCurrency(order.subtotal)}</td>
-                </tr>
-                ${Number(order.deliveryFee) > 0 ? `
-                <tr>
-                  <td style="color: #6b7280; padding: 6px 0;">Delivery Fee</td>
-                  <td style="color: #374151; text-align: right; padding: 6px 0;">${formatCurrency(order.deliveryFee)}</td>
-                </tr>
-                ` : ""}
-                <tr style="border-top: 2px solid #e5e7eb;">
-                  <td style="color: #111827; font-weight: 700; padding: 12px 0 6px 0; font-size: 16px;">Total</td>
-                  <td style="color: #16a34a; font-weight: 700; text-align: right; padding: 12px 0 6px 0; font-size: 18px;">${formatCurrency(order.totalAmount)}</td>
-                </tr>
-              </table>
-            </div>
-
-            ${deliveryInfoHtml}
-
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">
-              Thank you for your order! If you have any questions, please don't hesitate to contact us.
-            </p>
-          </div>
-
-          <div style="background: #f9fafb; padding: 20px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
-            <p style="color: #9ca3af; font-size: 12px; margin: 0;">Latin Lite Cantina - Fresh Latin-inspired meals delivered to your door</p>
-          </div>
-        </body>
-      </html>
-    `;
-
-    const result = await resend.emails.send({
-      from: fromEmail,
-      to: order.customer.user.email,
-      subject: `Order Confirmed - ${order.orderNumber}`,
-      html: emailHtml,
+    // Build order items summary for email
+    const orderItemsSummary = order.orderDays.map((day) => {
+      const dayName = DAY_NAMES[day.dayOfWeek] || `Day ${day.dayOfWeek}`;
+      const items = (day.orderItems as OrderItem[]).map((item) => ({
+        name: item.menuItem.name,
+        quantity: item.quantity,
+        isCompleta: item.isCompleta,
+      }));
+      return { dayName, items };
     });
 
-    console.log("Order confirmation email sent:", result);
+    // Build delivery info
+    let deliveryInfo = "";
+    if (order.isPickup) {
+      deliveryInfo = "Pickup at Latin Lite Cantina";
+    } else if (order.address) {
+      deliveryInfo = `${order.address.street}${order.address.unit ? `, ${order.address.unit}` : ""}, ${order.address.city}, ${order.address.state} ${order.address.zipCode}`;
+    }
 
-    if (result.error) {
-      console.error("Resend error:", result.error);
-      return { success: false, error: result.error.message };
+    const transactionalId = process.env.LOOPS_ORDER_CONFIRMATION_ID;
+
+    if (!transactionalId) {
+      console.error("LOOPS_ORDER_CONFIRMATION_ID is not set");
+      return { success: false, error: "Transactional email ID not configured" };
+    }
+
+    const result = await loops.sendTransactionalEmail({
+      transactionalId,
+      email: order.customer.user.email,
+      dataVariables: {
+        firstName: customerName,
+        orderNumber: order.orderNumber,
+        orderDate: formatDate(order.createdAt),
+        weekOf: formatDate(order.weeklyMenu.weekStartDate),
+        orderType: order.isPickup ? "Pickup" : "Delivery",
+        subtotal: formatCurrency(order.subtotal),
+        deliveryFee: formatCurrency(order.deliveryFee),
+        totalAmount: formatCurrency(order.totalAmount),
+        deliveryInfo,
+        orderItemsHtml,
+        orderItemsSummary: JSON.stringify(orderItemsSummary),
+      },
+    });
+
+    console.log("Order confirmation email sent via Loops:", result);
+
+    if (!result.success) {
+      console.error("Loops error:", result);
+      return { success: false, error: "Failed to send email via Loops" };
     }
 
     return { success: true };

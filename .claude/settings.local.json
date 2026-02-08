@@ -17,7 +17,8 @@
       "Bash(do perl -pi -e 's/latin-orange/TEMP-SWAP-ORANGE/g' \"$file\")",
       "Bash(done)",
       "Bash(tee:*)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "WebFetch(domain:loops.so)"
     ]
   }
 }
