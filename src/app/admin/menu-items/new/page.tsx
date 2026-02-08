@@ -16,6 +16,12 @@ export default function NewMenuItemPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const parseNutrition = (value: FormDataEntryValue | null) => {
+      if (!value || value === "") return null;
+      const num = parseInt(value.toString(), 10);
+      return isNaN(num) ? null : num;
+    };
+
     const data = {
       name: formData.get("name"),
       description: formData.get("description") || null,
@@ -24,6 +30,11 @@ export default function NewMenuItemPage() {
       isDessert: formData.get("isDessert") === "on",
       isSoup: formData.get("isSoup") === "on",
       isStaple: formData.get("isStaple") === "on",
+      calories: parseNutrition(formData.get("calories")),
+      protein: parseNutrition(formData.get("protein")),
+      carbs: parseNutrition(formData.get("carbs")),
+      fat: parseNutrition(formData.get("fat")),
+      sodium: parseNutrition(formData.get("sodium")),
     };
 
     try {
@@ -195,6 +206,95 @@ export default function NewMenuItemPage() {
               </label>
             </div>
           )}
+
+          {/* Nutrition Information */}
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+              Nutrition Info (per serving)
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <label
+                  htmlFor="calories"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Calories
+                </label>
+                <input
+                  id="calories"
+                  name="calories"
+                  type="number"
+                  min="0"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  placeholder="kcal"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="protein"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Protein (g)
+                </label>
+                <input
+                  id="protein"
+                  name="protein"
+                  type="number"
+                  min="0"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  placeholder="grams"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="carbs"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Carbs (g)
+                </label>
+                <input
+                  id="carbs"
+                  name="carbs"
+                  type="number"
+                  min="0"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  placeholder="grams"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="fat"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Fat (g)
+                </label>
+                <input
+                  id="fat"
+                  name="fat"
+                  type="number"
+                  min="0"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  placeholder="grams"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="sodium"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Sodium (mg)
+                </label>
+                <input
+                  id="sodium"
+                  name="sodium"
+                  type="number"
+                  min="0"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
+                  placeholder="mg"
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-4 pt-4">
             <button

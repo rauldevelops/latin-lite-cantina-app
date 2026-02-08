@@ -14,6 +14,7 @@
   --color-latin-orange: #faab34;
   --color-latin-red: #e63945;
   --color-latin-charcoal: #3b3b3b;
+  --color-latin-dark: #1a1a1a;
 
   /* Font families */
   --font-poppins: var(--font-poppins);

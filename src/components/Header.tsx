@@ -38,7 +38,7 @@ export default function Header() {
   // On admin pages, show a minimal header
   if (isAdminPage) {
     return (
-      <header className="bg-latin-charcoal border-b border-gray-700 print:hidden">
+      <header className="bg-[#1a1a1a] border-b border-gray-700 print:hidden">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             <Link href="/" className="flex items-center gap-2">

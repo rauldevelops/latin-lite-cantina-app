@@ -41,7 +41,20 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { name, description, imageUrl, type, isDessert, isSoup, isStaple } = data;
+    const {
+      name,
+      description,
+      imageUrl,
+      type,
+      isDessert,
+      isSoup,
+      isStaple,
+      calories,
+      protein,
+      carbs,
+      fat,
+      sodium,
+    } = data;
 
     const menuItem = await prisma.menuItem.create({
       data: {
@@ -52,6 +65,11 @@ export async function POST(request: Request) {
         isDessert: isDessert || false,
         isSoup: isSoup || false,
         isStaple: isStaple || false,
+        calories: calories || null,
+        protein: protein || null,
+        carbs: carbs || null,
+        fat: fat || null,
+        sodium: sodium || null,
       },
     });
 

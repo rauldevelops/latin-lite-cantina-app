@@ -12,6 +12,19 @@ type MenuItem = {
   isDessert: boolean;
   isSoup: boolean;
   isStaple: boolean;
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  sodium: number | null;
+};
+
+type NutritionInfo = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  sodium: number;
 };
 
 type WeeklyMenuItem = {
@@ -34,6 +47,11 @@ type SideSelection = {
   isDessert: boolean;
   isSoup: boolean;
   quantity: number;
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  sodium: number | null;
 };
 
 // A single completa: 1 entree + 3 side slots
@@ -95,6 +113,48 @@ function getSoupCount(sides: SideSelection[]): number {
   return sides.filter((s) => s.isSoup).reduce((sum, s) => sum + s.quantity, 0);
 }
 
+// Calculate nutrition totals for a completa
+function getCompletaNutrition(completa: Completa): NutritionInfo {
+  let calories = 0, protein = 0, carbs = 0, fat = 0, sodium = 0;
+
+  // Add entree nutrition
+  if (completa.entree?.menuItem) {
+    const item = completa.entree.menuItem;
+    calories += item.calories || 0;
+    protein += item.protein || 0;
+    carbs += item.carbs || 0;
+    fat += item.fat || 0;
+    sodium += item.sodium || 0;
+  }
+
+  // Add sides nutrition (multiplied by quantity)
+  for (const side of completa.sides) {
+    calories += (side.calories || 0) * side.quantity;
+    protein += (side.protein || 0) * side.quantity;
+    carbs += (side.carbs || 0) * side.quantity;
+    fat += (side.fat || 0) * side.quantity;
+    sodium += (side.sodium || 0) * side.quantity;
+  }
+
+  return { calories, protein, carbs, fat, sodium };
+}
+
+// Check if a completa has any nutrition info
+function hasNutritionInfo(completa: Completa): boolean {
+  if (completa.entree?.menuItem) {
+    const item = completa.entree.menuItem;
+    if (item.calories || item.protein || item.carbs || item.fat || item.sodium) {
+      return true;
+    }
+  }
+  for (const side of completa.sides) {
+    if (side.calories || side.protein || side.carbs || side.fat || side.sodium) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Restore OrderSelections from checkout data
 function restoreSelectionsFromCheckoutData(
   orderDays: CheckoutOrderDay[],
@@ -145,6 +205,11 @@ function restoreSelectionsFromCheckoutData(
             isDessert: sideItem.menuItem.isDessert,
             isSoup: sideItem.menuItem.isSoup,
             quantity: sideData.quantity,
+            calories: sideItem.menuItem.calories,
+            protein: sideItem.menuItem.protein,
+            carbs: sideItem.menuItem.carbs,
+            fat: sideItem.menuItem.fat,
+            sodium: sideItem.menuItem.sodium,
           });
         }
       }
@@ -177,6 +242,11 @@ function restoreSelectionsFromCheckoutData(
           isDessert: item.menuItem.isDessert,
           isSoup: item.menuItem.isSoup,
           quantity: extraData.quantity,
+          calories: item.menuItem.calories,
+          protein: item.menuItem.protein,
+          carbs: item.menuItem.carbs,
+          fat: item.menuItem.fat,
+          sodium: item.menuItem.sodium,
         });
       }
     }
@@ -433,6 +503,11 @@ export default function OrderPage() {
           isDessert: weeklyMenuItem.menuItem.isDessert,
           isSoup: weeklyMenuItem.menuItem.isSoup,
           quantity: 1,
+          calories: weeklyMenuItem.menuItem.calories,
+          protein: weeklyMenuItem.menuItem.protein,
+          carbs: weeklyMenuItem.menuItem.carbs,
+          fat: weeklyMenuItem.menuItem.fat,
+          sodium: weeklyMenuItem.menuItem.sodium,
         });
       }
 
@@ -523,6 +598,11 @@ export default function OrderPage() {
           isDessert: weeklyMenuItem.menuItem.isDessert,
           isSoup: weeklyMenuItem.menuItem.isSoup,
           quantity: 1,
+          calories: weeklyMenuItem.menuItem.calories,
+          protein: weeklyMenuItem.menuItem.protein,
+          carbs: weeklyMenuItem.menuItem.carbs,
+          fat: weeklyMenuItem.menuItem.fat,
+          sodium: weeklyMenuItem.menuItem.sodium,
         });
       }
 
@@ -843,6 +923,24 @@ export default function OrderPage() {
                                     </button>
                                   </span>
                                 ))}
+                              </div>
+                            )}
+
+                            {/* Nutrition Info - show when completa is complete */}
+                            {isCompletaComplete(completa) && hasNutritionInfo(completa) && (
+                              <div className="mt-2 px-3 py-2 bg-gray-50 rounded-md border border-gray-200">
+                                {(() => {
+                                  const nutrition = getCompletaNutrition(completa);
+                                  return (
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+                                      <span><strong>{nutrition.calories}</strong> cal</span>
+                                      <span><strong>{nutrition.protein}g</strong> protein</span>
+                                      <span><strong>{nutrition.carbs}g</strong> carbs</span>
+                                      <span><strong>{nutrition.fat}g</strong> fat</span>
+                                      <span><strong>{nutrition.sodium}mg</strong> sodium</span>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             )}
 

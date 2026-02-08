@@ -89,7 +89,7 @@ export default function AdminSidebar() {
     <aside
       className={`${
         collapsed ? "w-16" : "w-64"
-      } bg-latin-charcoal flex-shrink-0 sticky top-0 h-screen overflow-y-auto transition-all duration-200`}
+      } bg-[#1a1a1a] flex-shrink-0 sticky top-0 h-screen overflow-y-auto transition-all duration-200`}
     >
       <div className={`border-b border-gray-700 flex items-center ${collapsed ? "justify-center p-3" : "justify-between p-4"}`}>
         {!collapsed && (

@@ -47,7 +47,20 @@ export async function PUT(
     }
 
     const data = await request.json();
-    const { name, description, imageUrl, type, isDessert, isSoup, isStaple } = data;
+    const {
+      name,
+      description,
+      imageUrl,
+      type,
+      isDessert,
+      isSoup,
+      isStaple,
+      calories,
+      protein,
+      carbs,
+      fat,
+      sodium,
+    } = data;
 
     const menuItem = await prisma.menuItem.update({
       where: { id: params.id },
@@ -59,6 +72,11 @@ export async function PUT(
         isDessert: isDessert || false,
         isSoup: isSoup || false,
         isStaple: isStaple || false,
+        calories: calories ?? null,
+        protein: protein ?? null,
+        carbs: carbs ?? null,
+        fat: fat ?? null,
+        sodium: sodium ?? null,
       },
     });
 

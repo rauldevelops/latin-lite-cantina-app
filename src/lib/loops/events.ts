@@ -2,6 +2,9 @@ import { loops } from "@/lib/loops";
 
 type EventProperties = Record<string, string | number | boolean>;
 
+const getMenuUrl = () =>
+  `${process.env.NEXT_PUBLIC_APP_URL || "https://latinlitecantina.com"}/order`;
+
 /**
  * Send an event to Loops to trigger automations
  */
@@ -26,7 +29,7 @@ export async function sendLoopsEvent(
  * Triggers: Welcome signup series
  */
 export async function sendUserCreatedEvent(email: string, firstName: string) {
-  await sendLoopsEvent("user_created", email, { firstName });
+  await sendLoopsEvent("user_created", email, { firstName, menuUrl: getMenuUrl() });
 }
 
 /**
@@ -38,7 +41,11 @@ export async function sendCartStartedEvent(
   firstName: string,
   weeklyMenuId: string
 ) {
-  await sendLoopsEvent("cart_started", email, { firstName, weeklyMenuId });
+  await sendLoopsEvent("cart_started", email, {
+    firstName,
+    weeklyMenuId,
+    menuUrl: getMenuUrl(),
+  });
 }
 
 /**
@@ -74,5 +81,6 @@ export async function sendFirstOrderEvent(
     firstName,
     orderNumber,
     totalAmount,
+    menuUrl: getMenuUrl(),
   });
 }
