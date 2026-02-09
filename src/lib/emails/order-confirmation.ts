@@ -1,5 +1,6 @@
 import { loops } from "@/lib/loops";
 import { prisma } from "@/lib/prisma";
+import { formatFullDate } from "@/lib/timezone";
 
 const DAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
@@ -7,15 +8,6 @@ const DAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 function formatCurrency(amount: any): string {
   const num = Number(amount);
   return `$${num.toFixed(2)}`;
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
 }
 
 type OrderItem = {
@@ -38,12 +30,8 @@ function generateOrderItemsHtml(orderDays: OrderDay[]): string {
   for (const day of orderDays) {
     const dayName = DAY_NAMES[day.dayOfWeek] || `Day ${day.dayOfWeek}`;
 
-    html += `
-      <div style="margin-bottom: 20px;">
-        <h3 style="color: #16a34a; font-size: 16px; margin: 0 0 10px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
-          ${dayName}
-        </h3>
-    `;
+    html += `<div style="margin-bottom: 16px;">
+      <h3 style="color: #16a34a; font-size: 15px; margin: 0 0 6px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;">${dayName}</h3>`;
 
     // Group items by completaGroupId
     const completaGroups = new Map<string, OrderItem[]>();
@@ -65,32 +53,23 @@ function generateOrderItemsHtml(orderDays: OrderDay[]): string {
       const entree = items.find((i) => Number(i.unitPrice) > 0);
       const sides = items.filter((i) => Number(i.unitPrice) === 0);
 
-      html += `
-        <div style="background: #f9fafb; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
-          <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">
-            Completa ${completaIndex}
-          </div>
-          <div style="color: #4b5563; font-size: 14px;">
-            <strong>Entree:</strong> ${entree?.menuItem.name || "Unknown"}
-          </div>
-          <div style="color: #4b5563; font-size: 14px;">
-            <strong>Sides:</strong> ${sides.map((s) => s.menuItem.name).join(", ") || "None"}
-          </div>
-        </div>
-      `;
+      const sidesList = sides.length > 0
+        ? `<ul style="margin: 2px 0 0 0; padding-left: 20px; color: #4b5563; font-size: 13px;">${sides.map((s) => `<li style="margin: 0; padding: 0;">${s.menuItem.name}</li>`).join("")}</ul>`
+        : "<span style=\"color: #6b7280; font-size: 13px;\">None</span>";
+
+      html += `<div style="background: #f9fafb; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px;">
+        <div style="font-weight: 600; color: #374151; font-size: 14px; margin-bottom: 2px;">Completa ${completaIndex}</div>
+        <div style="color: #4b5563; font-size: 13px; margin-bottom: 2px;"><strong>Entree:</strong> ${entree?.menuItem.name || "Unknown"}</div>
+        <div style="color: #4b5563; font-size: 13px;"><strong>Sides:</strong>${sidesList}</div>
+      </div>`;
       completaIndex++;
     }
 
     // Render extras
     if (extras.length > 0) {
-      html += `<div style="margin-top: 8px;">`;
+      html += `<div style="margin-top: 4px;">`;
       for (const item of extras) {
-        html += `
-          <div style="color: #4b5563; font-size: 14px; padding: 4px 0;">
-            ${item.quantity > 1 ? `${item.quantity}x ` : ""}${item.menuItem.name}
-            <span style="color: #6b7280;">(Extra - ${formatCurrency(item.unitPrice)}${item.quantity > 1 ? " each" : ""})</span>
-          </div>
-        `;
+        html += `<div style="color: #4b5563; font-size: 13px; padding: 2px 0;">${item.quantity > 1 ? `${item.quantity}x ` : ""}${item.menuItem.name} <span style="color: #6b7280;">(Extra - ${formatCurrency(item.unitPrice)}${item.quantity > 1 ? " each" : ""})</span></div>`;
       }
       html += `</div>`;
     }
@@ -182,9 +161,18 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
 
     const transactionalId = process.env.LOOPS_ORDER_CONFIRMATION_ID;
 
+    console.log(`[Order Email] Sending confirmation for order ${order.orderNumber} to ${order.customer.user.email}`);
+    console.log(`[Order Email] LOOPS_API_KEY set: ${!!process.env.LOOPS_API_KEY}`);
+    console.log(`[Order Email] Transactional ID: ${transactionalId}`);
+
     if (!transactionalId) {
-      console.error("LOOPS_ORDER_CONFIRMATION_ID is not set");
+      console.error("[Order Email] LOOPS_ORDER_CONFIRMATION_ID is not set");
       return { success: false, error: "Transactional email ID not configured" };
+    }
+
+    if (!process.env.LOOPS_API_KEY) {
+      console.error("[Order Email] LOOPS_API_KEY is not set");
+      return { success: false, error: "Loops API key not configured" };
     }
 
     const result = await loops.sendTransactionalEmail({
@@ -193,8 +181,8 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       dataVariables: {
         firstName: customerName,
         orderNumber: order.orderNumber,
-        orderDate: formatDate(order.createdAt),
-        weekOf: formatDate(order.weeklyMenu.weekStartDate),
+        orderDate: formatFullDate(order.createdAt),
+        weekOf: formatFullDate(order.weeklyMenu.weekStartDate),
         orderType: order.isPickup ? "Pickup" : "Delivery",
         subtotal: formatCurrency(order.subtotal),
         deliveryFee: formatCurrency(order.deliveryFee),
@@ -205,16 +193,17 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       },
     });
 
-    console.log("Order confirmation email sent via Loops:", result);
+    console.log("[Order Email] Loops API response:", JSON.stringify(result));
 
     if (!result.success) {
-      console.error("Loops error:", result);
+      console.error("[Order Email] Loops API returned error:", result);
       return { success: false, error: "Failed to send email via Loops" };
     }
 
+    console.log(`[Order Email] Successfully sent confirmation for order ${order.orderNumber}`);
     return { success: true };
   } catch (error) {
-    console.error("Error sending order confirmation email:", error);
+    console.error("[Order Email] Error sending order confirmation email:", error);
     return { success: false, error: String(error) };
   }
 }

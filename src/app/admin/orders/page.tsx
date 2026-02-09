@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatShortDate } from "@/lib/timezone";
 
 type Order = {
   id: string;
@@ -26,6 +27,9 @@ const STATUSES = [
   "DELIVERED",
   "CANCELLED",
 ];
+
+const ORDER_STATUSES = ["PENDING", "CONFIRMED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
+const PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED", "CREDIT_ACCOUNT"];
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -55,6 +59,12 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  // Bulk editing state
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkPaymentStatus, setBulkPaymentStatus] = useState("");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -94,6 +104,81 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }
 
+  // Bulk selection handlers
+  function toggleSelectAll() {
+    if (selectedOrders.size === orders.length) {
+      setSelectedOrders(new Set());
+    } else {
+      setSelectedOrders(new Set(orders.map((o) => o.id)));
+    }
+  }
+
+  function toggleSelectOrder(orderId: string) {
+    const newSelection = new Set(selectedOrders);
+    if (newSelection.has(orderId)) {
+      newSelection.delete(orderId);
+    } else {
+      newSelection.add(orderId);
+    }
+    setSelectedOrders(newSelection);
+  }
+
+  async function handleBulkUpdate() {
+    if (selectedOrders.size === 0) {
+      alert("Please select at least one order");
+      return;
+    }
+
+    if (!bulkStatus && !bulkPaymentStatus) {
+      alert("Please select a status or payment status to update");
+      return;
+    }
+
+    const confirmMsg = `Update ${selectedOrders.size} order(s)?${bulkStatus ? `\n- Order Status: ${formatStatus(bulkStatus)}` : ""}${bulkPaymentStatus ? `\n- Payment Status: ${formatStatus(bulkPaymentStatus)}` : ""}`;
+
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
+    setBulkUpdating(true);
+    try {
+      const res = await fetch("/api/admin/orders/bulk-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderIds: Array.from(selectedOrders),
+          status: bulkStatus || undefined,
+          paymentStatus: bulkPaymentStatus || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update orders");
+      }
+
+      const data = await res.json();
+      alert(`Successfully updated ${data.updatedCount} order(s)`);
+
+      // Reset bulk edit state
+      setSelectedOrders(new Set());
+      setBulkStatus("");
+      setBulkPaymentStatus("");
+
+      // Refresh orders
+      fetchOrders();
+    } catch (err) {
+      alert(`Failed to update orders: ${err}`);
+    } finally {
+      setBulkUpdating(false);
+    }
+  }
+
+  function handleClearSelection() {
+    setSelectedOrders(new Set());
+    setBulkStatus("");
+    setBulkPaymentStatus("");
+  }
+
   if (loading && orders.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -115,6 +200,12 @@ export default function AdminOrdersPage() {
               Create Order
             </Link>
             <Link
+              href="/admin/delivery-zones"
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
+            >
+              Delivery Zones
+            </Link>
+            <Link
               href="/admin/menu-items"
               className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
             >
@@ -126,6 +217,62 @@ export default function AdminOrdersPage() {
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
             {error}
+          </div>
+        )}
+
+        {/* Bulk Actions Bar */}
+        {selectedOrders.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <span className="font-semibold text-blue-900">
+                  {selectedOrders.size} order(s) selected
+                </span>
+
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+                >
+                  <option value="">Change Order Status...</option>
+                  {ORDER_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {formatStatus(status)}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={bulkPaymentStatus}
+                  onChange={(e) => setBulkPaymentStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white"
+                >
+                  <option value="">Change Payment Status...</option>
+                  {PAYMENT_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {formatStatus(status)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBulkUpdate}
+                  disabled={bulkUpdating || (!bulkStatus && !bulkPaymentStatus)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                >
+                  {bulkUpdating ? "Updating..." : "Update Selected"}
+                </button>
+                <button
+                  onClick={handleClearSelection}
+                  disabled={bulkUpdating}
+                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -200,6 +347,14 @@ export default function AdminOrdersPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={orders.length > 0 && selectedOrders.size === orders.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Order #
                 </th>
@@ -229,7 +384,7 @@ export default function AdminOrdersPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
                     No orders found.
                   </td>
                 </tr>
@@ -237,28 +392,56 @@ export default function AdminOrdersPage() {
                 orders.map((order) => (
                   <tr
                     key={order.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    className={`hover:bg-gray-50 ${selectedOrders.has(order.id) ? "bg-blue-50" : ""}`}
                   >
-                    <td className="px-6 py-4 text-sm font-mono text-latin-red">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedOrders.has(order.id)}
+                        onChange={() => toggleSelectOrder(order.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </td>
+                    <td
+                      className="px-6 py-4 text-sm font-mono text-latin-red cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       {order.orderNumber}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td
+                      className="px-6 py-4 text-sm text-gray-900 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       {order.customer.firstName} {order.customer.lastName}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(order.createdAt).toLocaleDateString()}
+                    <td
+                      className="px-6 py-4 text-sm text-gray-600 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
+                      {formatShortDate(order.createdAt)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td
+                      className="px-6 py-4 text-sm text-gray-600 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       {order._count.orderDays}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    <td
+                      className="px-6 py-4 text-sm text-gray-600 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       {order.isPickup ? "Pickup" : "Delivery"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <td
+                      className="px-6 py-4 text-sm font-medium text-gray-900 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       ${Number(order.totalAmount).toFixed(2)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
                           STATUS_COLORS[order.status] || "bg-gray-100 text-gray-800"
@@ -267,7 +450,10 @@ export default function AdminOrdersPage() {
                         {formatStatus(order.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                    >
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
                           PAYMENT_COLORS[order.paymentStatus] || "bg-gray-100 text-gray-800"

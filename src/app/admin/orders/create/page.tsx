@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { formatPhoneNumber } from "@/lib/formatPhone";
+import { formatShortDate, formatDateET } from "@/lib/timezone";
 import StripeProvider from "@/components/StripeProvider";
 import {
   PaymentElement,
@@ -779,8 +780,8 @@ function AdminCreateOrderContent() {
     const monday = new Date(dateString);
     const friday = new Date(monday);
     friday.setDate(friday.getDate() + 4);
-    const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-    return `${monday.toLocaleDateString("en-US", options)} - ${friday.toLocaleDateString("en-US", options)}, ${monday.getFullYear()}`;
+    const year = formatDateET(monday, { year: "numeric" });
+    return `${formatShortDate(monday)} - ${formatShortDate(friday)}, ${year}`;
   }
 
   // ── Render ──

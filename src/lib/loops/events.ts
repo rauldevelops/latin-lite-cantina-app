@@ -13,14 +13,23 @@ export async function sendLoopsEvent(
   email: string,
   eventProperties?: EventProperties
 ) {
+  console.log(`[Loops] Sending event "${eventName}" to ${email}`, eventProperties);
+
+  if (!process.env.LOOPS_API_KEY) {
+    console.error(`[Loops] LOOPS_API_KEY is not set, cannot send ${eventName} event`);
+    return;
+  }
+
   try {
-    await loops.sendEvent({
+    const result = await loops.sendEvent({
       email,
       eventName,
       eventProperties,
     });
+    console.log(`[Loops] Event "${eventName}" sent successfully:`, result);
   } catch (error) {
-    console.error(`Failed to send ${eventName} event to Loops:`, error);
+    console.error(`[Loops] Failed to send ${eventName} event:`, error);
+    throw error;
   }
 }
 

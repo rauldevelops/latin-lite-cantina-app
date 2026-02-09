@@ -141,7 +141,9 @@ export async function PUT(
     }
 
     const newDeliveryFee = isPickup ? 0 : totalMeals * deliveryFeePerMeal;
-    const newTotalAmount = Number(order.subtotal) + newDeliveryFee;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const discountAmount = Number((order as any).discountAmount) || 0;
+    const newTotalAmount = Number(order.subtotal) - discountAmount + newDeliveryFee;
 
     // Update the order
     const updatedOrder = await prisma.order.update({

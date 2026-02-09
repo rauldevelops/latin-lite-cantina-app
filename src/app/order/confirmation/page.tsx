@@ -34,6 +34,8 @@ type Order = {
   orderNumber: string;
   subtotal: number;
   deliveryFee: number;
+  discountAmount: number | null;
+  promoCode: string | null;
   totalAmount: number;
   isPickup: boolean;
   paymentMethod: string | null;
@@ -296,6 +298,12 @@ function OrderConfirmationContent() {
                 <span>Subtotal</span>
                 <span>${Number(order.subtotal).toFixed(2)}</span>
               </div>
+              {order.discountAmount && Number(order.discountAmount) > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount{order.promoCode ? ` (${order.promoCode})` : ""}</span>
+                  <span>-${Number(order.discountAmount).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Delivery Fee</span>
                 <span>

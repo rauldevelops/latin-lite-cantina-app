@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatShortDate, formatDateET } from "@/lib/timezone";
 
 type WeeklyMenu = {
   id: string;
@@ -101,11 +102,8 @@ export default function PrepSheetsPage() {
     const monday = new Date(dateString);
     const friday = new Date(monday);
     friday.setDate(friday.getDate() + 4);
-    const options: Intl.DateTimeFormatOptions = {
-      month: "short",
-      day: "numeric",
-    };
-    return `${monday.toLocaleDateString("en-US", options)} – ${friday.toLocaleDateString("en-US", options)}, ${monday.getFullYear()}`;
+    const year = formatDateET(monday, { year: "numeric" });
+    return `${formatShortDate(monday)} – ${formatShortDate(friday)}, ${year}`;
   }
 
   if (loading) {

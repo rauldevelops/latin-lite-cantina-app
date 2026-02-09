@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateAddress } from "@/lib/address-validation";
 
 export async function GET() {
   try {
@@ -49,6 +50,15 @@ export async function POST(request: Request) {
     if (!street || !city || !state || !zipCode) {
       return NextResponse.json(
         { error: "Street, city, state, and zip code are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate address format and delivery zone
+    const validation = await validateAddress({ street, city, state, zipCode });
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.errors.join(". ") },
         { status: 400 }
       );
     }

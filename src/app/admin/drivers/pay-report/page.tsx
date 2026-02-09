@@ -111,7 +111,7 @@ export default function DriverPayReportPage() {
                   id="weekStartDate"
                   value={selectedWeek}
                   onChange={(e) => setSelectedWeek(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <button

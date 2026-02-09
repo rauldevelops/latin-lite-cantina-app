@@ -44,6 +44,103 @@ const emptyAddress: AddressFormData = {
   isDefault: false,
 };
 
+// Address form component (extracted to prevent re-creation on every render)
+function AddressForm({
+  addressForm,
+  setAddressForm,
+  onSubmit,
+  onCancel,
+  savingAddress,
+  isEdit,
+}: {
+  addressForm: AddressFormData;
+  setAddressForm: (form: AddressFormData) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+  savingAddress: boolean;
+  isEdit: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="border border-gray-200 rounded-lg p-4 space-y-3">
+      <p className="font-medium text-gray-900 text-sm">
+        {isEdit ? "Edit Address" : "New Address"}
+      </p>
+      <input
+        type="text"
+        placeholder="Street Address *"
+        required
+        value={addressForm.street}
+        onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+      />
+      <input
+        type="text"
+        placeholder="Apt / Unit (optional)"
+        value={addressForm.unit}
+        onChange={(e) => setAddressForm({ ...addressForm, unit: e.target.value })}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <input
+          type="text"
+          placeholder="City *"
+          required
+          value={addressForm.city}
+          onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+          className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+        />
+        <input
+          type="text"
+          placeholder="State *"
+          required
+          value={addressForm.state}
+          onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+          className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+        />
+        <input
+          type="text"
+          placeholder="ZIP *"
+          required
+          value={addressForm.zipCode}
+          onChange={(e) => setAddressForm({ ...addressForm, zipCode: e.target.value })}
+          className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+        />
+      </div>
+      <input
+        type="text"
+        placeholder="Delivery Notes (optional)"
+        value={addressForm.deliveryNotes}
+        onChange={(e) => setAddressForm({ ...addressForm, deliveryNotes: e.target.value })}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+      />
+      <label className="flex items-center gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={addressForm.isDefault}
+          onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+        />
+        Set as default address
+      </label>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={savingAddress}
+          className="px-4 py-2 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold disabled:opacity-50 transition-colors"
+        >
+          {savingAddress ? "SAVING..." : isEdit ? "UPDATE ADDRESS" : "SAVE ADDRESS"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
+        >
+          CANCEL
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -352,90 +449,6 @@ export default function AccountPage() {
     }
   }
 
-  // --- Address form component ---
-
-  function AddressForm({ onSubmit, isEdit }: { onSubmit: (e: React.FormEvent) => void; isEdit: boolean }) {
-    return (
-      <form onSubmit={onSubmit} className="border border-gray-200 rounded-lg p-4 space-y-3">
-        <p className="font-medium text-gray-900 text-sm">
-          {isEdit ? "Edit Address" : "New Address"}
-        </p>
-        <input
-          type="text"
-          placeholder="Street Address *"
-          required
-          value={addressForm.street}
-          onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-        />
-        <input
-          type="text"
-          placeholder="Apt / Unit (optional)"
-          value={addressForm.unit}
-          onChange={(e) => setAddressForm({ ...addressForm, unit: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <input
-            type="text"
-            placeholder="City *"
-            required
-            value={addressForm.city}
-            onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="State *"
-            required
-            value={addressForm.state}
-            onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="ZIP *"
-            required
-            value={addressForm.zipCode}
-            onChange={(e) => setAddressForm({ ...addressForm, zipCode: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-          />
-        </div>
-        <input
-          type="text"
-          placeholder="Delivery Notes (optional)"
-          value={addressForm.deliveryNotes}
-          onChange={(e) => setAddressForm({ ...addressForm, deliveryNotes: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
-        />
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={addressForm.isDefault}
-            onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
-          />
-          Set as default address
-        </label>
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={savingAddress}
-            className="px-4 py-2 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold disabled:opacity-50 transition-colors"
-          >
-            {savingAddress ? "SAVING..." : isEdit ? "UPDATE ADDRESS" : "SAVE ADDRESS"}
-          </button>
-          <button
-            type="button"
-            onClick={cancelAddressForm}
-            className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-full hover:bg-gray-300 uppercase font-semibold transition-colors"
-          >
-            CANCEL
-          </button>
-        </div>
-      </form>
-    );
-  }
-
   // --- Loading state ---
 
   if (status === "loading" || loading) {
@@ -597,7 +610,14 @@ export default function AccountPage() {
               {addresses.map((addr) => (
                 <div key={addr.id}>
                   {editingAddressId === addr.id ? (
-                    <AddressForm onSubmit={handleUpdateAddress} isEdit />
+                    <AddressForm
+                      addressForm={addressForm}
+                      setAddressForm={setAddressForm}
+                      onSubmit={handleUpdateAddress}
+                      onCancel={cancelAddressForm}
+                      savingAddress={savingAddress}
+                      isEdit
+                    />
                   ) : (
                     <div
                       className={`border rounded-lg p-4 ${
@@ -654,7 +674,14 @@ export default function AccountPage() {
               ))}
 
               {showNewAddressForm && (
-                <AddressForm onSubmit={handleAddAddress} isEdit={false} />
+                <AddressForm
+                  addressForm={addressForm}
+                  setAddressForm={setAddressForm}
+                  onSubmit={handleAddAddress}
+                  onCancel={cancelAddressForm}
+                  savingAddress={savingAddress}
+                  isEdit={false}
+                />
               )}
             </div>
           </div>

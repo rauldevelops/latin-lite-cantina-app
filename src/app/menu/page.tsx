@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { formatShortDate } from "@/lib/timezone";
 
 type MenuItem = {
   id: string;
@@ -142,9 +143,7 @@ export default function MenuPage() {
     const monday = new Date(dateString);
     const friday = new Date(monday);
     friday.setDate(friday.getDate() + 4);
-
-    const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-    return `${monday.toLocaleDateString("en-US", options)} - ${friday.toLocaleDateString("en-US", options)}`;
+    return `${formatShortDate(monday)} - ${formatShortDate(friday)}`;
   }
 
   function getWeekLabel(dateString: string): string {

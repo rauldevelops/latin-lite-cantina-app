@@ -24,6 +24,15 @@ export async function syncContactToLoops(userId: string) {
   const orderCount = user.orderCount;
   const lastOrder = user.customer?.orders[0];
 
+  // Calculate days since last order
+  let daysSinceLastOrder: number | null = null;
+  if (lastOrder?.createdAt) {
+    const now = new Date();
+    const lastOrderDate = new Date(lastOrder.createdAt);
+    const diffMs = now.getTime() - lastOrderDate.getTime();
+    daysSinceLastOrder = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  }
+
   // Determine preferred method from order history
   let preferredMethod = user.preferredMethod;
   if (!preferredMethod && user.customer?.orders.length) {
@@ -45,6 +54,7 @@ export async function syncContactToLoops(userId: string) {
         lastName: user.lastName,
         orderCount,
         lastOrderDate: lastOrder?.createdAt?.toISOString() ?? null,
+        daysSinceLastOrder,
         preferredMethod: preferredMethod ?? null,
         createdAt: user.createdAt.toISOString(),
       },

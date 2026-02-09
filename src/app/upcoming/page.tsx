@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatShortDate, isTodayET } from "@/lib/timezone";
 
 type Completa = {
   entree: string;
@@ -43,20 +44,12 @@ const STATUS_COLORS: Record<string, string> = {
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString + "T12:00:00");
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  return formatShortDate(date);
 }
 
 function isToday(dateString: string): boolean {
-  const today = new Date();
   const date = new Date(dateString + "T12:00:00");
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
+  return isTodayET(date);
 }
 
 export default function UpcomingMealsPage() {

@@ -74,9 +74,13 @@ export async function POST(request: Request) {
           console.log(`Order ${orderId} marked as PAID via webhook`);
 
           // Send order confirmation email
+          console.log(`Attempting to send order confirmation email for ${orderId}...`);
+          console.log(`LOOPS_API_KEY set: ${!!process.env.LOOPS_API_KEY}`);
+          console.log(`LOOPS_ORDER_CONFIRMATION_ID set: ${!!process.env.LOOPS_ORDER_CONFIRMATION_ID}`);
+
           const emailResult = await sendOrderConfirmationEmail(orderId);
           if (emailResult.success) {
-            console.log(`Order confirmation email sent for ${orderId}`);
+            console.log(`Order confirmation email sent successfully for ${orderId}`);
           } else {
             console.error(`Failed to send confirmation email for ${orderId}:`, emailResult.error);
           }
@@ -129,32 +133,44 @@ export async function POST(request: Request) {
               // Send Loops events (non-blocking)
               if (user.email) {
                 const totalAmount = order.totalAmount.toString();
+                const firstName = user.firstName || "Customer";
+                console.log(`Sending Loops events for ${user.email}, isFirstOrder: ${isFirstOrder}`);
 
                 if (isFirstOrder) {
+                  console.log(`Sending first_order event for ${user.email}...`);
                   sendFirstOrderEvent(
                     user.email,
-                    user.firstName,
+                    firstName,
                     order.orderNumber,
                     totalAmount
-                  ).catch((err) =>
-                    console.error("Failed to send first_order event:", err)
-                  );
+                  )
+                    .then(() => console.log(`first_order event sent for ${user.email}`))
+                    .catch((err) =>
+                      console.error("Failed to send first_order event:", err)
+                    );
                 }
 
+                console.log(`Sending order_completed event for ${user.email}...`);
                 sendOrderCompletedEvent(
                   user.email,
-                  user.firstName,
+                  firstName,
                   order.orderNumber,
                   totalAmount,
                   order.isPickup
-                ).catch((err) =>
-                  console.error("Failed to send order_completed event:", err)
-                );
+                )
+                  .then(() => console.log(`order_completed event sent for ${user.email}`))
+                  .catch((err) =>
+                    console.error("Failed to send order_completed event:", err)
+                  );
 
                 // Sync updated contact to Loops
-                syncContactToLoops(user.id).catch((err) =>
-                  console.error("Failed to sync contact to Loops:", err)
-                );
+                syncContactToLoops(user.id)
+                  .then(() => console.log(`Contact synced to Loops for ${user.id}`))
+                  .catch((err) =>
+                    console.error("Failed to sync contact to Loops:", err)
+                  );
+              } else {
+                console.log(`No email found for user ${user.id}, skipping Loops events`);
               }
             }
           } catch (loopsError) {

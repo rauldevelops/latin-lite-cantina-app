@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatDateET } from "@/lib/timezone";
 
 type Order = {
   id: string;
@@ -48,7 +49,7 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
 const DAY_NAMES = ["", "Mon", "Tue", "Wed", "Thu", "Fri"];
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
+  return formatDateET(dateString, {
     month: "short",
     day: "numeric",
     year: "numeric",

@@ -77,6 +77,14 @@ export default function CheckoutPage() {
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState("");
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoDescription, setPromoDescription] = useState("");
+  const [promoApplying, setPromoApplying] = useState(false);
+  const [promoError, setPromoError] = useState("");
+
   // Load initial data
   useEffect(() => {
     const stored = sessionStorage.getItem("checkoutOrderData");
@@ -102,20 +110,32 @@ export default function CheckoutPage() {
 
   // Create order once data is loaded
   const createOrder = useCallback(async () => {
-    if (!orderData || orderCreatedRef.current || orderCreating) return;
+    // CRITICAL: Prevent duplicate orders with multiple checks
+    // 1. Check the ref first (synchronous lock)
+    if (orderCreatedRef.current) return;
+
+    // 2. Set the lock immediately before any async work
+    orderCreatedRef.current = true;
+
+    // Now do validation checks - if we return early, we keep the lock
+    // to prevent any other attempts (the order will be created on success)
+    if (!orderData) {
+      orderCreatedRef.current = false; // Only reset if no order data
+      return;
+    }
 
     // For delivery, need an address selected
     if (!isPickup && !selectedAddressId && addresses.length > 0) {
-      // Wait for address selection
+      orderCreatedRef.current = false; // Reset to allow retry when address is selected
       return;
     }
 
     // For delivery with no addresses, user needs to add one first
     if (!isPickup && addresses.length === 0) {
+      orderCreatedRef.current = false; // Reset to allow retry when address is added
       return;
     }
 
-    orderCreatedRef.current = true;
     setOrderCreating(true);
     setError("");
 
@@ -154,24 +174,33 @@ export default function CheckoutPage() {
 
       const { clientSecret: secret } = await paymentRes.json();
       setClientSecret(secret);
+      // Keep orderCreatedRef.current = true on success
     } catch (err) {
+      // Only reset on error to allow retry
       orderCreatedRef.current = false;
       setError(`${err}`);
     } finally {
       setOrderCreating(false);
     }
-  }, [orderData, isPickup, selectedAddressId, addresses.length, orderCreating]);
+  }, [orderData, isPickup, selectedAddressId, addresses.length]);
 
-  // Auto-create order when ready
+  // Auto-create order when ready (runs once when conditions are met)
   useEffect(() => {
-    if (!addressLoading && orderData && pricing && !orderCreatedRef.current) {
-      // For pickup, create immediately
-      // For delivery, wait for address
-      if (isPickup || selectedAddressId) {
-        createOrder();
-      }
+    // Skip if already created or currently creating
+    if (orderCreatedRef.current || orderCreating) return;
+
+    // Skip if data not loaded
+    if (addressLoading || !orderData || !pricing) return;
+
+    // For pickup, create immediately
+    // For delivery, wait for address
+    if (isPickup || selectedAddressId) {
+      createOrder();
     }
-  }, [addressLoading, orderData, pricing, isPickup, selectedAddressId, createOrder]);
+    // Note: We intentionally exclude createOrder from deps to prevent re-runs
+    // The ref tracks whether order was created
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressLoading, orderData, pricing, isPickup, selectedAddressId, orderCreating]);
 
   // Update order when delivery options change (after order is created)
   useEffect(() => {
@@ -207,7 +236,7 @@ export default function CheckoutPage() {
   }, [isPickup, selectedAddressId]);
 
   function calculateTotals() {
-    if (!orderData || !pricing) return { subtotal: 0, deliveryFee: 0, total: 0, totalMeals: 0 };
+    if (!orderData || !pricing) return { subtotal: 0, deliveryFee: 0, discount: 0, total: 0, totalMeals: 0 };
 
     let subtotal = 0;
     let totalMeals = 0;
@@ -225,7 +254,8 @@ export default function CheckoutPage() {
     }
 
     const deliveryFee = isPickup ? 0 : totalMeals * pricing.deliveryFeePerMeal;
-    return { subtotal, deliveryFee, total: subtotal + deliveryFee, totalMeals };
+    const discount = promoDiscount;
+    return { subtotal, deliveryFee, discount, total: subtotal - discount + deliveryFee, totalMeals };
   }
 
   async function handleSaveAddress(e: React.FormEvent) {
@@ -270,6 +300,67 @@ export default function CheckoutPage() {
     setError(message);
   }
 
+  async function handleApplyPromo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!orderId || !promoCodeInput.trim()) return;
+
+    setPromoApplying(true);
+    setPromoError("");
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}/apply-promo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCodeInput.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPromoError(data.error || "Failed to apply promo code");
+        return;
+      }
+
+      setPromoCode(data.promoCode);
+      setPromoDiscount(data.discountAmount);
+      setPromoDescription(data.discountDescription);
+      setPromoCodeInput("");
+    } catch (err) {
+      setPromoError(`Failed to apply promo code: ${err}`);
+    } finally {
+      setPromoApplying(false);
+    }
+  }
+
+  async function handleRemovePromo() {
+    if (!orderId) return;
+
+    setPromoApplying(true);
+    setPromoError("");
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}/apply-promo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: null }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setPromoError(data.error || "Failed to remove promo code");
+        return;
+      }
+
+      setPromoCode("");
+      setPromoDiscount(0);
+      setPromoDescription("");
+    } catch (err) {
+      setPromoError(`Failed to remove promo code: ${err}`);
+    } finally {
+      setPromoApplying(false);
+    }
+  }
+
   if (!orderData || !pricing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -278,7 +369,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const { subtotal, deliveryFee, total } = calculateTotals();
+  const { subtotal, deliveryFee, discount, total } = calculateTotals();
   const canShowPayment = clientSecret && orderId;
   const needsAddress = !isPickup && !selectedAddressId && addresses.length === 0;
 
@@ -541,12 +632,59 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Promo Code */}
+              <div className="border-t pt-3">
+                <p className="text-sm font-medium text-gray-700 mb-2">Promo Code</p>
+                {promoCode ? (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-2">
+                    <div>
+                      <span className="text-green-700 font-medium text-sm">{promoCode}</span>
+                      <span className="text-green-600 text-xs ml-2">({promoDescription})</span>
+                    </div>
+                    <button
+                      onClick={handleRemovePromo}
+                      disabled={promoApplying}
+                      className="text-red-500 hover:text-red-700 text-xs font-medium disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleApplyPromo} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                      placeholder="Enter code"
+                      disabled={!orderId || promoApplying}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm uppercase"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!orderId || promoApplying || !promoCodeInput.trim()}
+                      className="px-3 py-2 bg-latin-red text-white text-sm rounded-md hover:bg-latin-orange disabled:opacity-50 transition-colors"
+                    >
+                      {promoApplying ? "..." : "Apply"}
+                    </button>
+                  </form>
+                )}
+                {promoError && (
+                  <p className="text-red-500 text-xs mt-1">{promoError}</p>
+                )}
+              </div>
+
               {/* Pricing Breakdown */}
-              <div className="border-t pt-3 space-y-1">
+              <div className="border-t pt-3 mt-3 space-y-1">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount</span>
+                    <span>-${discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Delivery Fee</span>
                   <span>{isPickup ? "FREE" : `$${deliveryFee.toFixed(2)}`}</span>

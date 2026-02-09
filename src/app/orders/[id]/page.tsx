@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { formatFullDate } from "@/lib/timezone";
 
 type OrderItem = {
   id: string;
@@ -70,12 +71,7 @@ const STATUS_DESCRIPTIONS: Record<string, string> = {
 const DAY_NAMES = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatFullDate(dateString);
 }
 
 function formatCurrency(amount: string | number): string {

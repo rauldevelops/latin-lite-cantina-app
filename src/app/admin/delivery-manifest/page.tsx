@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPhoneNumber } from "@/lib/formatPhone";
+import { formatShortDate } from "@/lib/timezone";
 
 type WeeklyMenu = {
   id: string;
@@ -181,7 +182,7 @@ export default function DeliveryManifestPage() {
           >
             {menus.map((m) => (
               <option key={m.id} value={m.id}>
-                Week of {new Date(m.weekStartDate).toLocaleDateString()}
+                Week of {formatShortDate(m.weekStartDate)}
               </option>
             ))}
           </select>
@@ -226,7 +227,7 @@ export default function DeliveryManifestPage() {
       <div className="hidden print:block mb-2">
         <h1 className="text-sm font-bold">
           Delivery Manifest — {DAYS.find((d) => d.num === selectedDay)?.name}{" "}
-          {selectedMenu && `(Week of ${new Date(selectedMenu.weekStartDate).toLocaleDateString()})`}
+          {selectedMenu && `(Week of ${formatShortDate(selectedMenu.weekStartDate)})`}
         </h1>
         {selectedDriverId && (
           <p className="text-xs text-gray-600">

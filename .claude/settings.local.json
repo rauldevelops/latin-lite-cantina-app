@@ -18,7 +18,9 @@
       "Bash(done)",
       "Bash(tee:*)",
       "Read(//tmp/**)",
-      "WebFetch(domain:loops.so)"
+      "WebFetch(domain:loops.so)",
+      "Bash(npm run sync-contacts:*)",
+      "Bash(git add:*)"
     ]
   }
 }
