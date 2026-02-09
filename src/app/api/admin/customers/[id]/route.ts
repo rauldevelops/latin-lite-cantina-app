@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(
   request: Request,
@@ -120,7 +121,7 @@ export async function PATCH(
     if (email !== undefined) userUpdateData.email = email;
 
     // Update both in transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (Object.keys(customerUpdateData).length > 0) {
         await tx.customer.update({
           where: { id },
