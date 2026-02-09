@@ -2,8 +2,13 @@ import { loops } from "@/lib/loops";
 
 type EventProperties = Record<string, string | number | boolean>;
 
-const getMenuUrl = () =>
-  `${process.env.NEXT_PUBLIC_APP_URL || "https://latinlitecantina.com"}/order`;
+const getMenuUrl = () => {
+  // Use VERCEL_URL for automatic environment-specific URLs
+  // VERCEL_URL is automatically set by Vercel for each deployment
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://latinlitecantina.com");
+  return `${baseUrl}/order`;
+};
 
 /**
  * Send an event to Loops to trigger automations

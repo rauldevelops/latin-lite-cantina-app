@@ -48,7 +48,9 @@ export async function POST(request: Request) {
     });
 
     // Build reset URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // Use VERCEL_URL for automatic environment-specific URLs
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     // Send email via Loops transactional email
