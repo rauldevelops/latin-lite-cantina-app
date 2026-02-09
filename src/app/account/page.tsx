@@ -91,11 +91,14 @@ function AddressForm({
         />
         <input
           type="text"
-          placeholder="State *"
+          placeholder="State (e.g., FL) *"
           required
           value={addressForm.state}
-          onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-          className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+          onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value.toUpperCase().slice(0, 2) })}
+          maxLength={2}
+          pattern="[A-Z]{2}"
+          title="Please enter a 2-letter state code (e.g., FL)"
+          className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm uppercase"
         />
         <input
           type="text"
