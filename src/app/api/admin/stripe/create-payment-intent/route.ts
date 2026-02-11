@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         isAdminOrder: "true",
       },
       receipt_email: customerEmail || undefined,
-      description: description || "Latin Lite Cantina - Admin Order",
+      description: description || "LatinLite Cantina - Admin Order",
     });
 
     return NextResponse.json({

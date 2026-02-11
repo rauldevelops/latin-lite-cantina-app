@@ -1,6 +1,6 @@
-# Latin Lite Style Guide
+# LatinLite Style Guide
 
-This document defines the consistent styling patterns used across the Latin Lite application (customer portal and admin interface).
+This document defines the consistent styling patterns used across the LatinLite application (customer portal and admin interface).
 
 ---
 

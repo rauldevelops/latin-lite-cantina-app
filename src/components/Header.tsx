@@ -85,7 +85,7 @@ export default function Header() {
           {/* Logo / Brand */}
           <Link href="/" className="flex items-center">
             <span className="text-xl font-bold text-latin-red">
-              Latin Lite Cantina
+              LatinLite Cantina
             </span>
           </Link>
 

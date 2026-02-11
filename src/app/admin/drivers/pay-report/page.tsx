@@ -144,7 +144,7 @@ export default function DriverPayReportPage() {
           <div className="bg-white rounded-lg shadow print:shadow-none">
             {/* Print Header */}
             <div className="hidden print:block p-6 border-b">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Latin Lite Driver Pay Report</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">LatinLite Driver Pay Report</h1>
               <p className="text-gray-600">
                 Week of {formatDate(report.weekStartDate)} • Rate: {formatCurrency(report.deliveryFeePerMeal)} per meal
               </p>

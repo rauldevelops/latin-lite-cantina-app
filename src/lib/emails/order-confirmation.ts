@@ -121,7 +121,7 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       deliveryInfoHtml = `
         <div style="background: #fef3c7; padding: 16px; border-radius: 8px; margin-top: 20px;">
           <h3 style="color: #92400e; font-size: 14px; margin: 0 0 8px 0;">Pickup Location</h3>
-          <p style="color: #78350f; margin: 0; font-weight: 500;">Latin Lite Cantina</p>
+          <p style="color: #78350f; margin: 0; font-weight: 500;">LatinLite Cantina</p>
           <p style="color: #92400e; margin: 4px 0 0 0; font-size: 14px;">We'll have your order ready for pickup!</p>
         </div>
       `;
@@ -154,7 +154,7 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
     // Build delivery info
     let deliveryInfo = "";
     if (order.isPickup) {
-      deliveryInfo = "Pickup at Latin Lite Cantina";
+      deliveryInfo = "Pickup at LatinLite Cantina";
     } else if (order.address) {
       deliveryInfo = `${order.address.street}${order.address.unit ? `, ${order.address.unit}` : ""}, ${order.address.city}, ${order.address.state} ${order.address.zipCode}`;
     }

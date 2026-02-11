@@ -1,4 +1,4 @@
-# Latin Lite Food Delivery Application
+# LatinLite Food Delivery Application
 ## Project Roadmap & Technical Specification
 
 **Document Version:** 1.0  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Latin Lite is a weekly meal delivery service offering fresh, Latin-inspired meals cooked and packaged every weekday morning. This document outlines the development roadmap for a custom full-stack application to replace the current manual workflow (Microsoft Access + email-based ordering) with an integrated system serving four user types: customers, admin/staff, kitchen, and drivers.
+LatinLite is a weekly meal delivery service offering fresh, Latin-inspired meals cooked and packaged every weekday morning. This document outlines the development roadmap for a custom full-stack application to replace the current manual workflow (Microsoft Access + email-based ordering) with an integrated system serving four user types: customers, admin/staff, kitchen, and drivers.
 
 **Primary MVP Goal:** Eliminate manual order entry by connecting customer-facing ordering directly to the backend database, reducing errors and saving hours of administrative work weekly.
 
@@ -927,5 +927,5 @@ I recommend we create a more detailed technical specification for the order buil
 
 ---
 
-*Document prepared for Latin Lite by Claude*  
+*Document prepared for LatinLite by Claude*  
 *Last updated: January 16, 2026*
