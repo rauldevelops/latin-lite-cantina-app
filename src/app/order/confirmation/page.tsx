@@ -304,12 +304,6 @@ function OrderConfirmationContent() {
                   <span>-${Number(order.discountAmount).toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span>Delivery Fee</span>
-                <span>
-                  {order.isPickup ? "FREE" : `$${Number(order.deliveryFee).toFixed(2)}`}
-                </span>
-              </div>
               <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
                 <span>Total</span>
                 <span>${Number(order.totalAmount).toFixed(2)}</span>
