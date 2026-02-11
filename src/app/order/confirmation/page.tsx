@@ -294,10 +294,6 @@ function OrderConfirmationContent() {
               ))}
 
             <div className="space-y-1 mt-4 pt-4 border-t text-sm text-gray-600">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>${Number(order.subtotal).toFixed(2)}</span>
-              </div>
               {order.discountAmount && Number(order.discountAmount) > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Discount{order.promoCode ? ` (${order.promoCode})` : ""}</span>
