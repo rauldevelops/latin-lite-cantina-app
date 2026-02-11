@@ -1011,6 +1011,7 @@ export default function OrderPage() {
                                           <span className="text-xs ml-1">(soup)</span>
                                         )}
                                       </span>
+                                      <span className="flex-1 border-b border-dotted border-gray-300 mx-2 mb-1" />
                                       <div className="flex items-center gap-2">
                                         <button
                                           onClick={() =>
@@ -1068,6 +1069,7 @@ export default function OrderPage() {
                                   <span className="text-sm text-gray-700">
                                     {item.menuItem.name}
                                   </span>
+                                  <span className="flex-1 border-b border-dotted border-gray-300 mx-2 mb-1" />
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={() => updateExtraEntree(day.num, item, -1)}
@@ -1114,6 +1116,7 @@ export default function OrderPage() {
                                   <span className="text-sm text-gray-700">
                                     {sideItem.menuItem.name}
                                   </span>
+                                  <span className="flex-1 border-b border-dotted border-gray-300 mx-2 mb-1" />
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={() => updateExtraSide(day.num, sideItem, -1)}

@@ -1200,6 +1200,7 @@ function AdminCreateOrderContent() {
                                                   {isDessert && <span className="text-xs ml-1">(dessert)</span>}
                                                   {isSoup && <span className="text-xs ml-1">(soup)</span>}
                                                 </span>
+                                                <span className="flex-1 border-b border-dotted border-gray-300 mx-2 mb-1" />
                                                 <div className="flex items-center gap-2">
                                                   <button
                                                     onClick={() => updateCompletaSide(day.num, cIndex, sideItem, -1)}
@@ -1247,6 +1248,7 @@ function AdminCreateOrderContent() {
                                     return (
                                       <div key={item.id} className="flex items-center justify-between mb-1">
                                         <span className="text-sm text-gray-700">{item.menuItem.name}</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-300 mx-2 mb-1" />
                                         <div className="flex items-center gap-2">
                                           <button onClick={() => updateExtraEntree(day.num, item, -1)} disabled={qty === 0} className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center">&minus;</button>
                                           <span className="w-6 text-center text-base font-semibold text-gray-900">{qty}</span>
@@ -1278,6 +1280,7 @@ function AdminCreateOrderContent() {
                                     return (
                                       <div key={sideItem.id} className="flex items-center justify-between mb-1">
                                         <span className="text-sm text-gray-700">{sideItem.menuItem.name}</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-300 mx-2 mb-1" />
                                         <div className="flex items-center gap-2">
                                           <button onClick={() => updateExtraSide(day.num, sideItem, -1)} disabled={qty === 0} className="w-8 h-8 rounded-full bg-gray-200 text-gray-900 text-lg font-bold disabled:opacity-30 hover:bg-gray-300 flex items-center justify-center">&minus;</button>
                                           <span className="w-6 text-center text-base font-semibold text-gray-900">{qty}</span>
