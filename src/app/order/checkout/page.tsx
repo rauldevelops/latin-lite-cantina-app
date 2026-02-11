@@ -424,7 +424,7 @@ export default function CheckoutPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-gray-700 font-medium">Pickup Location</p>
                   <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
-                  <p className="text-latin-red text-sm mt-2 font-medium">No delivery fee</p>
+                  <p className="text-latin-red text-sm mt-2 font-medium">Free pickup!</p>
                 </div>
               ) : (
                 <div>
@@ -688,10 +688,6 @@ export default function CheckoutPage() {
                     <span>-${discount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Delivery Fee</span>
-                  <span>{isPickup ? "FREE" : `$${deliveryFee.toFixed(2)}`}</span>
-                </div>
                 <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t">
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>
