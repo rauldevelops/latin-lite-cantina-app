@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "sync-contacts": "tsx scripts/sync-contacts.ts",
+    "seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
