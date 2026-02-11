@@ -678,10 +678,6 @@ export default function CheckoutPage() {
 
               {/* Pricing Breakdown */}
               <div className="border-t pt-3 mt-3 space-y-1">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Discount</span>
