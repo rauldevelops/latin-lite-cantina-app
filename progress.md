@@ -1,4 +1,4 @@
-# Latin Lite Development Progress
+# LatinLite Development Progress
 
 **Last Updated:** February 6, 2026
 **Current Phase:** Phase 1 (MVP)

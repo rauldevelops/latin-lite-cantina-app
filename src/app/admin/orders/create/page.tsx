@@ -681,7 +681,7 @@ function AdminCreateOrderContent() {
         body: JSON.stringify({
           amount: totals.total,
           customerEmail: selectedCustomer.email,
-          description: `Latin Lite Cantina - Admin Order for ${selectedCustomer.firstName} ${selectedCustomer.lastName}`,
+          description: `LatinLite Cantina - Admin Order for ${selectedCustomer.firstName} ${selectedCustomer.lastName}`,
         }),
       });
 
@@ -1628,7 +1628,7 @@ function AdminCreateOrderContent() {
                 {isPickup ? "Pickup" : "Delivery"}
               </h2>
               {isPickup ? (
-                <p className="text-sm text-gray-600">Pickup at Latin Lite Cantina</p>
+                <p className="text-sm text-gray-600">Pickup at LatinLite Cantina</p>
               ) : (
                 (() => {
                   const addr = selectedCustomer.addresses.find((a) => a.id === selectedAddressId);

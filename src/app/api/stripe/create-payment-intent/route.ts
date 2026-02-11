@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         customerId: order.customerId,
       },
       receipt_email: order.customer.user.email || undefined,
-      description: `Latin Lite Cantina - Order ${order.orderNumber}`,
+      description: `LatinLite Cantina - Order ${order.orderNumber}`,
     });
 
     // Store PaymentIntent ID on the order

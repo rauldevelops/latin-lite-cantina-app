@@ -273,7 +273,7 @@ export default function OrderDetailPage() {
             {order.isPickup && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <span className="text-gray-500 text-sm">Pickup Location:</span>
-                <p className="font-medium text-gray-900">Latin Lite Cantina</p>
+                <p className="font-medium text-gray-900">LatinLite Cantina</p>
               </div>
             )}
           </div>

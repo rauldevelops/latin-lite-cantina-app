@@ -19,7 +19,7 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Latin Lite Cantina",
+  title: "LatinLite Cantina",
   description: "Fresh Latin-inspired meals delivered to your door",
 };
 

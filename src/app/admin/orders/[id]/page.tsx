@@ -398,7 +398,7 @@ export default function AdminOrderDetailPage() {
               </h2>
               {order.isPickup ? (
                 <p className="text-sm text-gray-600">
-                  Pickup at Latin Lite Cantina
+                  Pickup at LatinLite Cantina
                 </p>
               ) : order.address ? (
                 <div className="text-sm text-gray-600">

@@ -122,7 +122,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-xl font-bold text-latin-red mb-2">Latin Lite Cantina</p>
+          <p className="text-xl font-bold text-latin-red mb-2">LatinLite Cantina</p>
           <p className="text-gray-400">Fresh Latin-inspired meals delivered to your door</p>
         </div>
       </footer>

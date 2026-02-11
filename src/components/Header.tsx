@@ -43,7 +43,7 @@ export default function Header() {
           <div className="flex justify-between items-center h-14">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-lg font-bold text-latin-red">
-                Latin Lite Cantina
+                LatinLite Cantina
               </span>
               <span className="text-gray-500">|</span>
               <span className="text-sm text-gray-400">Admin</span>
@@ -85,7 +85,7 @@ export default function Header() {
           {/* Logo / Brand */}
           <Link href="/" className="flex items-center">
             <span className="text-xl font-bold text-latin-red">
-              Latin Lite Cantina
+              LatinLite Cantina
             </span>
           </Link>
 

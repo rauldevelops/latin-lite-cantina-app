@@ -45,7 +45,7 @@ type DaySummary = {
   extraSides: { name: string; quantity: number }[];
 };
 
-const PICKUP_LOCATION = "Latin Lite Cantina";
+const PICKUP_LOCATION = "LatinLite Cantina";
 
 export default function CheckoutPage() {
   const router = useRouter();
