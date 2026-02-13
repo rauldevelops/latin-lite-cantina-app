@@ -63,6 +63,7 @@ model User {
   firstName     String
   lastName      String
   phone         String?
+  isGuest       Boolean   @default(false)  // True for shadow guest checkout accounts
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -290,7 +291,10 @@ model Order {
 
   // Stripe
   stripePaymentIntentId String?
-  
+
+  // Guest checkout
+  guestToken    String?       @unique  // UUID token for guest order access
+
   // Metadata
   notes           String?
   createdById     String?       // Staff who created (for phone orders)

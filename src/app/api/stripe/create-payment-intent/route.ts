@@ -6,11 +6,7 @@ import { stripe } from "@/lib/stripe";
 export async function POST(request: Request) {
   try {
     const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { orderId } = await request.json();
+    const { orderId, guestToken } = await request.json();
 
     if (!orderId) {
       return NextResponse.json({ error: "Order ID required" }, { status: 400 });
@@ -32,8 +28,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Verify ownership - compare to session.user.customerId
-    if (order.customerId !== session.user.customerId) {
+    // Verify ownership: session OR guest token
+    const isAuthOwner = session?.user?.customerId === order.customerId;
+    const isGuestOwner = order.guestToken && guestToken && order.guestToken === guestToken;
+    if (!isAuthOwner && !isGuestOwner) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

@@ -64,7 +64,13 @@ function OrderConfirmationContent() {
     }
 
     try {
-      const res = await fetch(`/api/orders/${orderId}`);
+      // For guest orders, append guestToken as query param
+      const guestToken = sessionStorage.getItem("guestOrderToken");
+      const url = guestToken
+        ? `/api/orders/${orderId}?guestToken=${encodeURIComponent(guestToken)}`
+        : `/api/orders/${orderId}`;
+
+      const res = await fetch(url);
 
       if (!res.ok) {
         throw new Error("Order not found");
@@ -72,6 +78,11 @@ function OrderConfirmationContent() {
 
       const data = await res.json();
       setOrder(data);
+
+      // Clean up guest token after successful load
+      if (guestToken) {
+        sessionStorage.removeItem("guestOrderToken");
+      }
     } catch (err) {
       setError(`Failed to load order: ${err}`);
     } finally {
@@ -85,15 +96,25 @@ function OrderConfirmationContent() {
     // If redirected from Stripe and payment succeeded, poll for updated status
     // The webhook should update the order, but we poll to ensure UI updates
     if (redirectStatus === "succeeded") {
+      // For guest orders, use guestToken in polling requests too
+      const pollGuestToken = sessionStorage.getItem("guestOrderToken");
+      const pollUrl = pollGuestToken
+        ? `/api/orders/${orderId}?guestToken=${encodeURIComponent(pollGuestToken)}`
+        : `/api/orders/${orderId}`;
+
       const pollInterval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/orders/${orderId}`);
+          const res = await fetch(pollUrl);
           if (res.ok) {
             const data = await res.json();
             setOrder(data);
             // Stop polling once payment is confirmed
             if (data.paymentStatus === "PAID") {
               clearInterval(pollInterval);
+              // Clean up guest token after confirmed payment
+              if (pollGuestToken) {
+                sessionStorage.removeItem("guestOrderToken");
+              }
             }
           }
         } catch {

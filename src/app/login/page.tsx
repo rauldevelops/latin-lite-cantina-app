@@ -33,7 +33,8 @@ function LoginContent() {
         return;
       }
 
-      router.push("/");
+      const callbackUrl = searchParams.get("callbackUrl") || "/";
+      router.push(callbackUrl);
       router.refresh();
     } catch (err) {
       setError(`Something went wrong: ${err}`);

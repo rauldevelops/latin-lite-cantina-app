@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { validateAddress } from "@/lib/address-validation";
+import { randomUUID } from "crypto";
 
 async function getPricingConfig() {
   const config = await prisma.pricingConfig.findFirst();
@@ -24,19 +26,71 @@ function generateOrderNumber(): string {
 export async function POST(request: Request) {
   try {
     const session = await auth();
+    const body = await request.json();
+    const { weeklyMenuId, orderDays, isPickup, addressId, guestInfo, guestAddress } = body;
 
-    if (!session) {
-      return NextResponse.json({ error: "Please log in to place an order" }, { status: 401 });
+    // --- Resolve customerId: authenticated user OR guest shadow customer ---
+    let customerId: string;
+    let guestToken: string | null = null;
+
+    if (session?.user?.customerId) {
+      // Authenticated path
+      customerId = session.user.customerId;
+    } else {
+      // Guest path — validate guest info
+      if (!guestInfo?.email || !guestInfo?.firstName || !guestInfo?.lastName || !guestInfo?.phone) {
+        return NextResponse.json({ error: "Guest information is required" }, { status: 400 });
+      }
+
+      const email = (guestInfo.email as string).toLowerCase().trim();
+
+      // Check if a non-guest user already exists with this email
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        include: { customer: true },
+      });
+
+      if (existingUser && !existingUser.isGuest) {
+        return NextResponse.json(
+          { error: "An account already exists with this email. Please sign in to place your order." },
+          { status: 409 }
+        );
+      }
+
+      if (existingUser?.isGuest && existingUser.customer) {
+        // Reuse existing shadow customer
+        customerId = existingUser.customer.id;
+        // Update their info in case it changed
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            firstName: guestInfo.firstName.trim(),
+            lastName: guestInfo.lastName.trim(),
+            phone: guestInfo.phone.trim(),
+          },
+        });
+      } else {
+        // Create new shadow user + customer
+        const shadowUser = await prisma.user.create({
+          data: {
+            email,
+            firstName: guestInfo.firstName.trim(),
+            lastName: guestInfo.lastName.trim(),
+            phone: guestInfo.phone.trim(),
+            password: null,
+            isGuest: true,
+            role: "CUSTOMER",
+            customer: { create: {} },
+          },
+          include: { customer: true },
+        });
+        customerId = shadowUser.customer!.id;
+      }
+
+      guestToken = randomUUID();
     }
 
-    // Get customer ID from session
-    const customerId = session.user.customerId;
-    if (!customerId) {
-      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
-    }
-
-    const { weeklyMenuId, orderDays, isPickup, addressId } = await request.json();
-
+    // --- Validate order data ---
     const MIN_DAYS_PER_ORDER = 3;
 
     if (!weeklyMenuId || !orderDays || orderDays.length === 0) {
@@ -62,20 +116,56 @@ export async function POST(request: Request) {
       }
     }
 
-    // Validate delivery/pickup
+    // --- Validate delivery/pickup ---
+    let resolvedAddressId: string | null = null;
+
     if (!isPickup) {
-      if (!addressId) {
-        return NextResponse.json(
-          { error: "Delivery address is required" },
-          { status: 400 }
-        );
-      }
-      const address = await prisma.address.findUnique({ where: { id: addressId } });
-      if (!address || address.customerId !== customerId) {
-        return NextResponse.json(
-          { error: "Invalid delivery address" },
-          { status: 400 }
-        );
+      if (session?.user?.customerId) {
+        // Authenticated: use saved addressId
+        if (!addressId) {
+          return NextResponse.json(
+            { error: "Delivery address is required" },
+            { status: 400 }
+          );
+        }
+        const address = await prisma.address.findUnique({ where: { id: addressId } });
+        if (!address || address.customerId !== customerId) {
+          return NextResponse.json(
+            { error: "Invalid delivery address" },
+            { status: 400 }
+          );
+        }
+        resolvedAddressId = addressId;
+      } else {
+        // Guest: validate and create inline address
+        if (!guestAddress?.street || !guestAddress?.city || !guestAddress?.state || !guestAddress?.zipCode) {
+          return NextResponse.json(
+            { error: "Delivery address is required" },
+            { status: 400 }
+          );
+        }
+
+        const validation = await validateAddress(guestAddress);
+        if (!validation.valid) {
+          return NextResponse.json(
+            { error: validation.errors.join(". ") },
+            { status: 400 }
+          );
+        }
+
+        const createdAddress = await prisma.address.create({
+          data: {
+            customerId,
+            street: guestAddress.street.trim(),
+            unit: guestAddress.unit?.trim() || null,
+            city: guestAddress.city.trim(),
+            state: guestAddress.state.trim().toUpperCase(),
+            zipCode: guestAddress.zipCode.trim(),
+            deliveryNotes: guestAddress.deliveryNotes?.trim() || null,
+            isDefault: true,
+          },
+        });
+        resolvedAddressId = createdAddress.id;
       }
     }
 
@@ -150,12 +240,13 @@ export async function POST(request: Request) {
         customerId,
         weeklyMenuId,
         isPickup: !!isPickup,
-        addressId: isPickup ? null : addressId,
+        addressId: isPickup ? null : resolvedAddressId,
         paymentMethod: "CARD",
         paymentStatus: "PENDING",
         subtotal,
         deliveryFee,
         totalAmount,
+        guestToken,
         orderDays: {
           create: typedOrderDays.map((day) => {
             const orderItems: {
@@ -166,7 +257,6 @@ export async function POST(request: Request) {
               completaGroupId: string | null;
             }[] = [];
 
-            // Completas (unitPrice = 0 for individual items; pricing is at bundle level)
             day.completas.forEach((completa, cIndex) => {
               const groupId = `${Date.now()}-${day.dayOfWeek}-${cIndex}`;
               orderItems.push({
@@ -187,7 +277,6 @@ export async function POST(request: Request) {
               });
             });
 
-            // Extra entrees
             day.extraEntrees.forEach((extra) => {
               orderItems.push({
                 menuItemId: extra.menuItemId,
@@ -198,7 +287,6 @@ export async function POST(request: Request) {
               });
             });
 
-            // Extra sides
             day.extraSides.forEach((extra) => {
               orderItems.push({
                 menuItemId: extra.menuItemId,
@@ -231,7 +319,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(order, { status: 201 });
+    return NextResponse.json({ ...order, guestToken }, { status: 201 });
   } catch (error) {
     console.error("Error creating order:", error);
     return NextResponse.json(

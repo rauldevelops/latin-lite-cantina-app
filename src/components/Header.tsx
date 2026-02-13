@@ -94,13 +94,13 @@ export default function Header() {
             <Link href="/menu" className={navLinkClass(pathname === "/menu")}>
               Menu
             </Link>
+            <Link href="/order" className={navLinkClass(pathname?.startsWith("/order") ?? false)}>
+              Order
+            </Link>
             {user && (
               <>
                 <Link href="/upcoming" className={navLinkClass(pathname === "/upcoming")}>
                   Upcoming
-                </Link>
-                <Link href="/order" className={navLinkClass(pathname?.startsWith("/order") ?? false)}>
-                  Order
                 </Link>
                 <Link href="/orders" className={navLinkClass(pathname?.startsWith("/orders") ?? false)}>
                   My Orders
@@ -182,6 +182,13 @@ export default function Header() {
             >
               Menu
             </Link>
+            <Link
+              href="/order"
+              onClick={() => setMobileMenuOpen(false)}
+              className={mobileNavLinkClass(pathname?.startsWith("/order") ?? false)}
+            >
+              Order
+            </Link>
             {user && (
               <>
                 <Link
@@ -190,13 +197,6 @@ export default function Header() {
                   className={mobileNavLinkClass(pathname === "/upcoming")}
                 >
                   Upcoming
-                </Link>
-                <Link
-                  href="/order"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={mobileNavLinkClass(pathname?.startsWith("/order") ?? false)}
-                >
-                  Order
                 </Link>
                 <Link
                   href="/orders"

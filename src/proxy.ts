@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 const guestOnlyPages = ["/login", "/register"];
 
 // Pages that require any authenticated user
-const customerAuthPrefixes = ["/account", "/orders", "/order"];
+const customerAuthPrefixes = ["/account", "/orders"];
 
 // Admin page prefix
 const adminPrefix = "/admin";
@@ -26,8 +26,6 @@ const adminApiPrefix = "/api/admin";
 const protectedApiPrefixes = [
   "/api/profile",
   "/api/addresses",
-  "/api/orders",
-  "/api/stripe/create-payment-intent",
 ];
 
 function startsWithAny(pathname: string, prefixes: string[]): boolean {
