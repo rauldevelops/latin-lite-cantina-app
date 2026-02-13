@@ -10,17 +10,7 @@ export async function POST(
   try {
     const session = await auth();
     const { id } = await context.params;
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const customerId = session.user.customerId;
-    if (!customerId) {
-      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
-    }
-
-    const { code } = await request.json();
+    const { code, guestToken } = await request.json();
 
     // Fetch the order
     const order = await prisma.order.findUnique({
@@ -31,8 +21,11 @@ export async function POST(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Verify ownership
-    if (order.customerId !== customerId) {
+    // Verify ownership: session OR guest token
+    const isAuthOwner = session?.user?.customerId === order.customerId;
+    const isAdmin = session?.user?.role === "ADMIN";
+    const isGuestOwner = order.guestToken && guestToken && order.guestToken === guestToken;
+    if (!isAuthOwner && !isAdmin && !isGuestOwner) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

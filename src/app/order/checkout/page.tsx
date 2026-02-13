@@ -77,6 +77,25 @@ export default function CheckoutPage() {
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
+  // Guest checkout state
+  const [isGuest, setIsGuest] = useState<boolean | null>(null); // null = loading
+  const [guestInfoReady, setGuestInfoReady] = useState(false);
+  const [guestInfo, setGuestInfo] = useState({
+    email: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+  });
+  const [guestAddress, setGuestAddress] = useState({
+    street: "",
+    unit: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    deliveryNotes: "",
+  });
+  const [guestAddressReady, setGuestAddressReady] = useState(false);
+
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
   const [promoCodeInput, setPromoCodeInput] = useState("");
@@ -94,15 +113,30 @@ export default function CheckoutPage() {
     }
     setOrderData(JSON.parse(stored));
 
-    Promise.all([
-      fetch("/api/pricing").then((r) => r.json()),
-      fetch("/api/addresses").then((r) => r.json()),
-    ])
-      .then(([pricingData, addressData]) => {
-        setPricing(pricingData);
-        setAddresses(addressData);
-        const defaultAddr = addressData.find((a: Address) => a.isDefault);
-        if (defaultAddr) setSelectedAddressId(defaultAddr.id);
+    // Check session to determine guest vs authenticated
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((session) => {
+        const guest = !session?.user;
+        setIsGuest(guest);
+
+        // Always fetch pricing; only fetch addresses for authenticated users
+        const fetches: Promise<unknown>[] = [
+          fetch("/api/pricing").then((r) => r.json()),
+        ];
+        if (!guest) {
+          fetches.push(fetch("/api/addresses").then((r) => r.json()));
+        }
+
+        return Promise.all(fetches).then(([pricingData, addressData]) => {
+          setPricing(pricingData as PricingConfig);
+          if (addressData) {
+            const addrs = addressData as Address[];
+            setAddresses(addrs);
+            const defaultAddr = addrs.find((a) => a.isDefault);
+            if (defaultAddr) setSelectedAddressId(defaultAddr.id);
+          }
+        });
       })
       .catch((err) => setError(`Failed to load checkout data: ${err}`))
       .finally(() => setAddressLoading(false));
@@ -124,15 +158,19 @@ export default function CheckoutPage() {
       return;
     }
 
-    // For delivery, need an address selected
-    if (!isPickup && !selectedAddressId && addresses.length > 0) {
-      orderCreatedRef.current = false; // Reset to allow retry when address is selected
+    // For authenticated delivery, need an address selected
+    if (!isGuest && !isPickup && !selectedAddressId && addresses.length > 0) {
+      orderCreatedRef.current = false;
+      return;
+    }
+    if (!isGuest && !isPickup && addresses.length === 0) {
+      orderCreatedRef.current = false;
       return;
     }
 
-    // For delivery with no addresses, user needs to add one first
-    if (!isPickup && addresses.length === 0) {
-      orderCreatedRef.current = false; // Reset to allow retry when address is added
+    // For guest delivery, need address confirmed
+    if (isGuest && !isPickup && !guestAddressReady) {
+      orderCreatedRef.current = false;
       return;
     }
 
@@ -140,31 +178,63 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      // Create the order
+      // Build request body
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const body: Record<string, any> = {
+        weeklyMenuId: orderData.weeklyMenuId,
+        orderDays: orderData.orderDays,
+        isPickup,
+        addressId: isPickup ? null : (isGuest ? null : selectedAddressId),
+      };
+
+      if (isGuest) {
+        body.guestInfo = guestInfo;
+        if (!isPickup) {
+          body.guestAddress = guestAddress;
+        }
+      }
+
       const orderRes = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          weeklyMenuId: orderData.weeklyMenuId,
-          orderDays: orderData.orderDays,
-          isPickup,
-          addressId: isPickup ? null : selectedAddressId,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!orderRes.ok) {
         const data = await orderRes.json();
+        if (orderRes.status === 409) {
+          // Existing account — show sign-in prompt
+          // Keep orderCreatedRef.current = true to prevent retry loop;
+          // user must sign in first (which navigates away from this page)
+          setError(`${data.error} <a href="/login?callbackUrl=/order/checkout" class="underline font-medium">Sign in here</a>`);
+          setOrderCreating(false);
+          return;
+        }
+        // For guest delivery errors (e.g. zip not in delivery zone),
+        // reset address ready so the form reappears and the auto-create
+        // effect won't re-fire in a loop
+        if (isGuest && !isPickup) {
+          setGuestAddressReady(false);
+        }
         throw new Error(data.error || "Failed to create order");
       }
 
       const order = await orderRes.json();
       setOrderId(order.id);
 
+      // Store guest token for subsequent requests
+      if (order.guestToken) {
+        sessionStorage.setItem("guestOrderToken", order.guestToken);
+      }
+
       // Create PaymentIntent
       const paymentRes = await fetch("/api/stripe/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order.id }),
+        body: JSON.stringify({
+          orderId: order.id,
+          guestToken: order.guestToken || undefined,
+        }),
       });
 
       if (!paymentRes.ok) {
@@ -174,33 +244,39 @@ export default function CheckoutPage() {
 
       const { clientSecret: secret } = await paymentRes.json();
       setClientSecret(secret);
-      // Keep orderCreatedRef.current = true on success
     } catch (err) {
-      // Only reset on error to allow retry
       orderCreatedRef.current = false;
       setError(`${err}`);
     } finally {
       setOrderCreating(false);
     }
-  }, [orderData, isPickup, selectedAddressId, addresses.length]);
+  }, [orderData, isPickup, selectedAddressId, addresses.length, isGuest, guestInfo, guestAddress, guestAddressReady]);
 
   // Auto-create order when ready (runs once when conditions are met)
   useEffect(() => {
-    // Skip if already created or currently creating
     if (orderCreatedRef.current || orderCreating) return;
-
-    // Skip if data not loaded
     if (addressLoading || !orderData || !pricing) return;
+    if (isGuest === null) return; // Still detecting session
+
+    // Guest must complete info form first
+    if (isGuest && !guestInfoReady) return;
 
     // For pickup, create immediately
-    // For delivery, wait for address
-    if (isPickup || selectedAddressId) {
+    if (isPickup) {
+      createOrder();
+      return;
+    }
+
+    // For delivery: authenticated needs addressId, guest needs confirmed address
+    if (isGuest) {
+      if (guestAddressReady) {
+        createOrder();
+      }
+    } else if (selectedAddressId) {
       createOrder();
     }
-    // Note: We intentionally exclude createOrder from deps to prevent re-runs
-    // The ref tracks whether order was created
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addressLoading, orderData, pricing, isPickup, selectedAddressId, orderCreating]);
+  }, [addressLoading, orderData, pricing, isPickup, selectedAddressId, orderCreating, isGuest, guestInfoReady, guestAddressReady]);
 
   // Update order when delivery options change (after order is created)
   useEffect(() => {
@@ -217,6 +293,7 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             isPickup,
             addressId: isPickup ? null : selectedAddressId,
+            guestToken: sessionStorage.getItem("guestOrderToken") || undefined,
           }),
         });
 
@@ -293,6 +370,7 @@ export default function CheckoutPage() {
 
   function handlePaymentSuccess() {
     sessionStorage.removeItem("checkoutOrderData");
+    // Keep guestOrderToken for confirmation page access
     router.push(`/order/confirmation?id=${orderId}`);
   }
 
@@ -311,7 +389,7 @@ export default function CheckoutPage() {
       const res = await fetch(`/api/orders/${orderId}/apply-promo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: promoCodeInput.trim() }),
+        body: JSON.stringify({ code: promoCodeInput.trim(), guestToken: sessionStorage.getItem("guestOrderToken") || undefined }),
       });
 
       const data = await res.json();
@@ -342,7 +420,7 @@ export default function CheckoutPage() {
       const res = await fetch(`/api/orders/${orderId}/apply-promo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: null }),
+        body: JSON.stringify({ code: null, guestToken: sessionStorage.getItem("guestOrderToken") || undefined }),
       });
 
       if (!res.ok) {
@@ -361,7 +439,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!orderData || !pricing) {
+  if (!orderData || !pricing || isGuest === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-600">{addressLoading ? "Loading..." : "Redirecting..."}</p>
@@ -371,7 +449,8 @@ export default function CheckoutPage() {
 
   const { subtotal, deliveryFee, discount, total } = calculateTotals();
   const canShowPayment = clientSecret && orderId;
-  const needsAddress = !isPickup && !selectedAddressId && addresses.length === 0;
+  const needsAddress = !isGuest && !isPickup && !selectedAddressId && addresses.length === 0;
+  const guestNeedsAddress = isGuest && !isPickup && !guestAddressReady;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -384,14 +463,76 @@ export default function CheckoutPage() {
         </div>
 
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>
+          <div className="bg-red-100 text-red-700 p-3 rounded mb-4" dangerouslySetInnerHTML={{ __html: error }} />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Delivery/Payment */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Delivery vs Pickup */}
-            <div className="bg-white rounded-lg shadow p-6">
+            {/* Guest Info Form */}
+            {isGuest && !guestInfoReady && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Information</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Checking out as guest.{" "}
+                  <Link href="/login?callbackUrl=/order/checkout" className="text-latin-red hover:text-latin-orange font-medium">
+                    Sign in
+                  </Link>{" "}
+                  to save your order history and addresses.
+                </p>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setGuestInfoReady(true);
+                  }}
+                  className="space-y-3"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="First Name *"
+                      required
+                      value={guestInfo.firstName}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, firstName: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Last Name *"
+                      required
+                      value={guestInfo.lastName}
+                      onChange={(e) => setGuestInfo({ ...guestInfo, lastName: e.target.value })}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                    />
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="Email Address *"
+                    required
+                    value={guestInfo.email}
+                    onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone Number *"
+                    required
+                    value={guestInfo.phone}
+                    onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full px-6 py-3 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
+                  >
+                    CONTINUE TO CHECKOUT
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Delivery vs Pickup (shown after guest info is collected, or for authenticated users) */}
+            {(!isGuest || guestInfoReady) && <><div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Delivery Method
               </h2>
@@ -426,6 +567,93 @@ export default function CheckoutPage() {
                   <p className="text-gray-600 text-sm mt-1">{PICKUP_LOCATION}</p>
                   <p className="text-latin-red text-sm mt-2 font-medium">Free pickup!</p>
                 </div>
+              ) : isGuest ? (
+                /* Guest inline delivery address */
+                guestAddressReady ? (
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <p className="font-medium text-gray-900 text-sm mb-1">Delivery Address</p>
+                    <p className="text-sm text-gray-600">
+                      {guestAddress.street}{guestAddress.unit ? `, ${guestAddress.unit}` : ""}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {guestAddress.city}, {guestAddress.state} {guestAddress.zipCode}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setGuestAddressReady(false); orderCreatedRef.current = false; }}
+                      className="text-latin-red hover:text-latin-orange text-sm font-medium mt-2 transition-colors"
+                    >
+                      Change Address
+                    </button>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setGuestAddressReady(true);
+                    }}
+                    className="border border-gray-200 rounded-lg p-4 space-y-3"
+                  >
+                    <p className="font-medium text-gray-900 text-sm">Delivery Address</p>
+                    <input
+                      type="text"
+                      placeholder="Street Address *"
+                      required
+                      value={guestAddress.street}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, street: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Apt / Unit (optional)"
+                      value={guestAddress.unit}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, unit: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                    />
+                    <div className="grid grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="City *"
+                        required
+                        value={guestAddress.city}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                      />
+                      <input
+                        type="text"
+                        placeholder="State (e.g., FL) *"
+                        required
+                        value={guestAddress.state}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, state: e.target.value.toUpperCase().slice(0, 2) })}
+                        maxLength={2}
+                        pattern="[A-Z]{2}"
+                        title="Please enter a 2-letter state code (e.g., FL)"
+                        className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm uppercase"
+                      />
+                      <input
+                        type="text"
+                        placeholder="ZIP *"
+                        required
+                        value={guestAddress.zipCode}
+                        onChange={(e) => setGuestAddress({ ...guestAddress, zipCode: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Delivery Notes (optional)"
+                      value={guestAddress.deliveryNotes}
+                      onChange={(e) => setGuestAddress({ ...guestAddress, deliveryNotes: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full px-6 py-3 bg-latin-red text-white text-sm rounded-full hover:bg-latin-orange uppercase font-semibold transition-colors"
+                    >
+                      CONFIRM ADDRESS
+                    </button>
+                  </form>
+                )
               ) : (
                 <div>
                   {addressLoading ? (
@@ -583,7 +811,7 @@ export default function CheckoutPage() {
                     onError={handlePaymentError}
                   />
                 </StripeProvider>
-              ) : needsAddress ? (
+              ) : needsAddress || guestNeedsAddress ? (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <p className="text-yellow-800 text-sm font-medium">Add a delivery address</p>
                   <p className="text-yellow-700 text-sm mt-1">
@@ -599,6 +827,7 @@ export default function CheckoutPage() {
                 <p className="text-sm text-gray-500 mt-2">Updating order...</p>
               )}
             </div>
+            </>}
           </div>
 
           {/* Right: Order Summary */}

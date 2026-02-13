@@ -3,6 +3,17 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 
+function verifyOrderAccess(
+  order: { customerId: string; guestToken: string | null },
+  session: { user?: { customerId?: string; role?: string } } | null,
+  guestToken: string | null
+): boolean {
+  if (session?.user?.role === "ADMIN") return true;
+  if (session?.user?.customerId === order.customerId) return true;
+  if (order.guestToken && guestToken && order.guestToken === guestToken) return true;
+  return false;
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -10,10 +21,8 @@ export async function GET(
   try {
     const session = await auth();
     const { id } = await context.params;
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const url = new URL(request.url);
+    const guestToken = url.searchParams.get("guestToken");
 
     const order = await prisma.order.findUnique({
       where: { id },
@@ -36,9 +45,7 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Only allow users to see their own orders (unless admin)
-    // Now comparing customerId to session.user.customerId
-    if (order.customerId !== session.user.customerId && session.user.role !== "ADMIN") {
+    if (!verifyOrderAccess(order, session, guestToken)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -60,17 +67,7 @@ export async function PUT(
   try {
     const session = await auth();
     const { id } = await context.params;
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const customerId = session.user.customerId;
-    if (!customerId) {
-      return NextResponse.json({ error: "Customer account not found" }, { status: 400 });
-    }
-
-    const { isPickup, addressId } = await request.json();
+    const { isPickup, addressId, guestToken } = await request.json();
 
     // Fetch the order
     const order = await prisma.order.findUnique({
@@ -88,10 +85,12 @@ export async function PUT(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Verify ownership
-    if (order.customerId !== customerId) {
+    // Verify ownership: session OR guest token
+    if (!verifyOrderAccess(order, session, guestToken)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const customerId = order.customerId;
 
     // Only allow updates before payment
     if (order.paymentStatus === "PAID") {
