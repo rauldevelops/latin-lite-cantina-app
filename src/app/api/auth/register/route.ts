@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { syncContactToLoops } from "@/lib/loops/contacts";
 import { sendUserCreatedEvent } from "@/lib/loops/events";
+import { waitUntil } from "@vercel/functions";
 
 export async function POST(request: Request) {
   try {
@@ -45,12 +46,16 @@ export async function POST(request: Request) {
       },
     });
 
-    // Sync contact to Loops and send welcome event (non-blocking)
-    syncContactToLoops(user.id).catch((err) =>
-      console.error("Failed to sync contact to Loops:", err)
-    );
-    sendUserCreatedEvent(email, firstName).catch((err) =>
-      console.error("Failed to send user_created event:", err)
+    // Sync contact to Loops and send welcome event after response is sent
+    waitUntil(
+      Promise.all([
+        syncContactToLoops(user.id).catch((err) =>
+          console.error("Failed to sync contact to Loops:", err)
+        ),
+        sendUserCreatedEvent(email, firstName).catch((err) =>
+          console.error("Failed to send user_created event:", err)
+        ),
+      ])
     );
 
     return NextResponse.json(

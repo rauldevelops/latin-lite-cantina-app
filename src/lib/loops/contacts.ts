@@ -45,6 +45,11 @@ export async function syncContactToLoops(userId: string) {
     preferredMethod = pickupCount > deliveryCount ? "pickup" : "delivery";
   }
 
+  const environment =
+    process.env.NEXT_PUBLIC_APP_ENV === "production" ? "production" : "staging";
+
+  console.log(`[Loops] Syncing contact ${user.email} with environment: ${environment}`);
+
   try {
     await loops.updateContact({
       email: user.email,
@@ -57,6 +62,7 @@ export async function syncContactToLoops(userId: string) {
         daysSinceLastOrder,
         preferredMethod: preferredMethod ?? null,
         createdAt: user.createdAt.toISOString(),
+        environment,
       },
     });
   } catch (error) {
