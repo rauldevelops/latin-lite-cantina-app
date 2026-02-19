@@ -10,6 +10,9 @@ const getMenuUrl = () => {
   return `${baseUrl}/order`;
 };
 
+const getEnvironment = () =>
+  process.env.NEXT_PUBLIC_APP_ENV === "production" ? "production" : "staging";
+
 /**
  * Send an event to Loops to trigger automations
  */
@@ -29,7 +32,7 @@ export async function sendLoopsEvent(
     const result = await loops.sendEvent({
       email,
       eventName,
-      eventProperties,
+      eventProperties: { ...eventProperties, environment: getEnvironment() },
     });
     console.log(`[Loops] Event "${eventName}" sent successfully:`, result);
   } catch (error) {
