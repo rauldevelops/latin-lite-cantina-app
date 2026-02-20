@@ -176,19 +176,31 @@ export default function WeeklyMenuBuilderPage() {
           >
             ← Back to Weekly Menus
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">
-            Week of {formatDate(weeklyMenu.weekStartDate)}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Status:{" "}
-            <span
-              className={
-                weeklyMenu.isPublished ? "text-green-600" : "text-yellow-600"
-              }
+          <div className="flex items-center justify-between mt-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Week of {formatDate(weeklyMenu.weekStartDate)}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Status:{" "}
+                <span
+                  className={
+                    weeklyMenu.isPublished ? "text-green-600" : "text-yellow-600"
+                  }
+                >
+                  {weeklyMenu.isPublished ? "Published" : "Draft"}
+                </span>
+              </p>
+            </div>
+            <a
+              href={`/admin/weekly-menus/${weeklyMenu.id}/print`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-gray-800 text-white rounded-full hover:bg-gray-700 uppercase font-semibold text-sm transition-colors"
             >
-              {weeklyMenu.isPublished ? "Published" : "Draft"}
-            </span>
-          </p>
+              🖨 Print Menu
+            </a>
+          </div>
         </div>
 
         {error && (

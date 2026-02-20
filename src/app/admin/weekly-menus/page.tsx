@@ -245,13 +245,21 @@ export default function WeeklyMenusPage() {
                         {menu.isPublished ? "Published" : "Draft"}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-right space-x-3">
                       <Link
                         href={`/admin/weekly-menus/${menu.id}`}
                         className="text-latin-red hover:text-latin-orange transition-colors"
                       >
                         Edit
                       </Link>
+                      <a
+                        href={`/admin/weekly-menus/${menu.id}/print`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        Print
+                      </a>
                       <button
                         onClick={() => deleteWeeklyMenu(menu.id, menu.weekStartDate)}
                         className="text-red-600 hover:text-red-800"
