@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { validateAddress } from "@/lib/address-validation";
 import { randomUUID } from "crypto";
+import { calculateOrderTotals, type OrderDayPayload } from "@/lib/pricing";
 
 async function getPricingConfig() {
   const config = await prisma.pricingConfig.findFirst();
@@ -181,13 +182,6 @@ export async function POST(request: Request) {
       );
     }
 
-    type OrderDayPayload = {
-      dayOfWeek: number;
-      completas: { entreeId: string; sides: { menuItemId: string; quantity: number }[] }[];
-      extraEntrees: { menuItemId: string; quantity: number }[];
-      extraSides: { menuItemId: string; quantity: number }[];
-    };
-
     // Collect all unique menu item IDs
     const menuItemIds: string[] = [
       ...new Set(
@@ -216,22 +210,12 @@ export async function POST(request: Request) {
     const pricing = await getPricingConfig();
     const typedOrderDays = orderDays as OrderDayPayload[];
 
-    // Calculate totals
-    let subtotal = 0;
-    let totalMeals = 0;
-    for (const day of typedOrderDays) {
-      subtotal += day.completas.length * pricing.completaPrice;
-      totalMeals += day.completas.length;
-      for (const extra of day.extraEntrees) {
-        subtotal += extra.quantity * pricing.extraEntreePrice;
-        totalMeals += extra.quantity;
-      }
-      for (const extra of day.extraSides) {
-        subtotal += extra.quantity * pricing.extraSidePrice;
-      }
-    }
-    const deliveryFee = isPickup ? 0 : totalMeals * pricing.deliveryFeePerMeal;
-    const totalAmount = subtotal + deliveryFee;
+    // Calculate totals using the shared pricing utility
+    const { subtotal, deliveryFee, totalAmount } = calculateOrderTotals(
+      typedOrderDays,
+      pricing,
+      !!isPickup
+    );
 
     // Create the order with nested orderDays and orderItems
     const order = await prisma.order.create({

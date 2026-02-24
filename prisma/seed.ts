@@ -329,7 +329,7 @@ async function main() {
 
   // ── 5. Admin User ──────────────────────────────────────────────────────────
   console.log("👑 Creating admin user...");
-  const adminPassword = await bcrypt.hash("admin123!", 10);
+  const adminPassword = await bcrypt.hash(process.env.SEED_ADMIN_PASSWORD ?? "admin123!", 10);
   await prisma.user.create({
     data: {
       email: "admin@latinlitecantina.com",
@@ -339,7 +339,7 @@ async function main() {
       role: UserRole.ADMIN,
     },
   });
-  console.log("   ✅ admin@latinlitecantina.com / admin123!\n");
+  console.log("   ✅ admin@latinlitecantina.com (password set via SEED_ADMIN_PASSWORD)\n");
 
   // ── 6. Drivers ─────────────────────────────────────────────────────────────
   console.log("🚗 Creating drivers...");
@@ -407,7 +407,7 @@ async function main() {
   // ── 8. 150 Customers ───────────────────────────────────────────────────────
   console.log("👥 Creating 150 customers...");
   const customerRecords: { user: { id: string }; customer: { id: string }; address: { id: string } }[] = [];
-  const customerPassword = await bcrypt.hash("customer123!", 10);
+  const customerPassword = await bcrypt.hash(process.env.SEED_CUSTOMER_PASSWORD ?? "customer123!", 10);
 
   for (let i = 0; i < 150; i++) {
     const firstName = FIRST_NAMES[i % FIRST_NAMES.length];
@@ -448,7 +448,7 @@ async function main() {
 
     customerRecords.push({ user, customer, address });
   }
-  console.log(`   ✅ 150 customers created (customer123!)\n`);
+  console.log(`   ✅ 150 customers created (password set via SEED_CUSTOMER_PASSWORD)\n`);
 
   // ── 9. 150 Orders ──────────────────────────────────────────────────────────
   console.log("📦 Creating 150 delivery orders...");
@@ -563,9 +563,9 @@ async function main() {
   // ── Summary ────────────────────────────────────────────────────────────────
   console.log("\n✅ Seed complete!\n");
   console.log("📝 Credentials:");
-  console.log("   Admin:    admin@latinlitecantina.com / admin123!");
-  console.log("   Customer: maria1@example.com / customer123!");
-  console.log("   Customer: carlos2@example.com / customer123!");
+  console.log("   Admin:    admin@latinlitecantina.com (see SEED_ADMIN_PASSWORD)");
+  console.log("   Customer: maria1@example.com (see SEED_CUSTOMER_PASSWORD)");
+  console.log("   Customer: carlos2@example.com (see SEED_CUSTOMER_PASSWORD)");
   console.log("\n📊 Summary:");
   console.log(`   ${entreeRecords.length} entrees (2 staples + ${entreeRecords.length - 2} rotating)`);
   console.log(`   ${sideRecords.length} sides (${regularSides.length} regular + ${soupSides.length} soups + ${dessertSides.length} desserts)`);

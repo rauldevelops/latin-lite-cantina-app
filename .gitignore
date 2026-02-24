@@ -32,6 +32,15 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# Keep the test template (no real secrets — placeholders only)
+!.env.test
+
+# playwright auth state (contains session cookies)
+playwright/.auth/
+
+# playwright reports and test output
+playwright-report/
+test-results/
 
 # vercel
 .vercel

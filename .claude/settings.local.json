@@ -28,7 +28,11 @@
       "Bash(git remote set-url:*)",
       "Bash(git stash:*)",
       "Bash(git stash pop:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(npx playwright install chromium)",
+      "Bash(npx vitest run tests/unit/pricing.test.ts)",
+      "Bash(npx vitest run tests/api/ tests/unit/)",
+      "Bash(npx vitest run)"
     ]
   }
 }
