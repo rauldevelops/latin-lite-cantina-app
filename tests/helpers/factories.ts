@@ -15,7 +15,7 @@
 
 /** A valid 3-day order body (the minimum the API accepts) */
 export function makeOrderBody(
-  overrides: Partial<ReturnType<typeof makeOrderBody>> = {},
+  overrides: Partial<{ weeklyMenuId: string; isPickup: boolean; orderDays: unknown[] }> = {},
   menuIds: { weeklyMenuId: string; entreeId: string; sideId: string }
 ) {
   return {
