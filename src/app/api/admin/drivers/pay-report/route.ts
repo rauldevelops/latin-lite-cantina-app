@@ -41,17 +41,26 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      include: {
+      select: {
         address: {
-          include: {
-            driver: true,
+          select: {
+            driverId: true,
+            driver: {
+              select: { id: true, name: true },
+            },
           },
         },
         orderDays: {
-          include: {
+          select: {
+            dayOfWeek: true,
             orderItems: {
-              include: {
-                menuItem: true,
+              select: {
+                isCompleta: true,
+                completaGroupId: true,
+                quantity: true,
+                menuItem: {
+                  select: { type: true },
+                },
               },
             },
           },

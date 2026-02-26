@@ -347,41 +347,18 @@ async function calculateCustomerMetrics(startDate: Date, endDate: Date) {
     },
   });
 
-  // Repeat order rate - customers with more than 1 order
-  const customersWithMultipleOrders = await prisma.customer.count({
-    where: {
-      orders: {
-        some: {
-          status: { not: "CANCELLED" },
-        },
-      },
-    },
+  // Repeat order rate — one groupBy replaces two queries and avoids loading
+  // full customer rows into memory. Groups orders by customer, then counts
+  // how many customers have >1 order vs >=1 order entirely in the DB.
+  const orderCountsByCustomer = await prisma.order.groupBy({
+    by: ["customerId"],
+    where: { status: { not: "CANCELLED" } },
+    _count: { id: true },
   });
 
-  const customersWithRepeatOrders = await prisma.customer.findMany({
-    where: {
-      orders: {
-        some: {
-          status: { not: "CANCELLED" },
-        },
-      },
-    },
-    select: {
-      id: true,
-      _count: {
-        select: {
-          orders: {
-            where: {
-              status: { not: "CANCELLED" },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  const repeatCustomers = customersWithRepeatOrders.filter(
-    (c) => c._count.orders > 1
+  const customersWithMultipleOrders = orderCountsByCustomer.length;
+  const repeatCustomers = orderCountsByCustomer.filter(
+    (g) => g._count.id > 1
   ).length;
 
   const repeatOrderRate =
